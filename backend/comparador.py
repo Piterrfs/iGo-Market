@@ -12,8 +12,8 @@ class ComparadorPrecos:
         if arquivo_csv and os.path.exists(arquivo_csv):
             self.df = pd.read_csv(arquivo_csv)
         else:
-            # Buscar CSV mais recente
-            csv_files = [f for f in os.listdir(CSV_DIR) if f.endswith('.csv')]
+            # Buscar CSV mais recente (excluir tabelas comparativas)
+            csv_files = [f for f in os.listdir(CSV_DIR) if f.endswith('.csv') and not f.startswith('tabela_comparativa')]
             if csv_files:
                 latest = max(csv_files, key=lambda f: os.path.getmtime(os.path.join(CSV_DIR, f)))
                 self.df = pd.read_csv(os.path.join(CSV_DIR, latest))

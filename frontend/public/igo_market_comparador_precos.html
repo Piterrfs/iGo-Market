@@ -11,6 +11,27 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
+        #tabela-comparativa {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        #tabela-comparativa th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #tabela-comparativa tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        @media (max-width: 768px) {
+            #tabela-comparativa {
+                font-size: 0.75rem;
+            }
+            #tabela-comparativa th,
+            #tabela-comparativa td {
+                padding: 0.5rem;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -113,6 +134,107 @@
             </div>
         </div>
 
+        <!-- Tabela Comparativa -->
+        <div class="container mx-auto px-4 mt-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 md:mb-0">
+                        📊 Tabela Comparativa de Preços
+                    </h2>
+                    <button
+                        onclick="carregarTabelaComparativa()"
+                        id="btn-carregar-tabela"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                    >
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Carregar Tabela
+                    </button>
+                </div>
+
+                <!-- Filtros -->
+                <div id="filtros-container" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4" style="display: none;">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Segmento</label>
+                        <select id="filtro-segmento" onchange="aplicarFiltros()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Produto</label>
+                        <input
+                            type="text"
+                            id="filtro-produto"
+                            placeholder="Filtrar por produto..."
+                            onkeyup="aplicarFiltros()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Marca</label>
+                        <select id="filtro-marca" onchange="aplicarFiltros()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mercado</label>
+                        <select id="filtro-mercado" onchange="aplicarFiltros()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Info da tabela -->
+                <div class="mb-4 flex items-center justify-between">
+                    <p class="text-sm text-gray-600">
+                        Mostrando <span id="total-tabela-filtrado" class="font-bold">0</span> de <span id="total-tabela" class="font-bold">0</span> produtos
+                    </p>
+                    <button
+                        onclick="exportarTabelaCSV()"
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center gap-2"
+                    >
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        Exportar CSV
+                    </button>
+                </div>
+
+                <!-- Tabela -->
+                <div class="overflow-x-auto">
+                    <table id="tabela-comparativa" class="min-w-full border-collapse">
+                        <thead>
+                            <tr class="bg-blue-600 text-white">
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Segmento')">
+                                    Segmento <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Produto')">
+                                    Produto <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Marca')">
+                                    Marca <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Qtd')">
+                                    Qtd <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Menor Preço')">
+                                    Menor Preço <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Mercado')">
+                                    Mercado <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Link</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-body" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                    Clique em "Carregar Tabela" para ver os dados
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="container mx-auto px-4 mt-8 text-center text-gray-600 text-sm">
             <p>iGo Market © 2026 - Comparador de Preços RJ</p>
@@ -123,12 +245,24 @@
         // Inicializar ícones Lucide
         lucide.createIcons();
 
-        // Carregar estatísticas ao iniciar
+        // Carregar estatísticas e tabela ao iniciar
         carregarEstatisticas();
+        
+        // Carregar tabela automaticamente após um pequeno delay
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                carregarTabelaComparativa();
+            }, 1000);
+        });
 
         async function carregarEstatisticas() {
             try {
-                const response = await axios.get('/api/estatisticas');
+                let response;
+                try {
+                    response = await axios.get('/api/estatisticas');
+                } catch (proxyError) {
+                    response = await axios.get('http://localhost:5000/api/estatisticas');
+                }
                 const stats = response.data;
                 
                 document.getElementById('total-produtos').textContent = stats.total_produtos || 0;
@@ -285,6 +419,196 @@
                 style: 'currency',
                 currency: 'BRL'
             }).format(preco);
+        }
+
+        // ===== FUNÇÕES DA TABELA COMPARATIVA =====
+        let dadosTabelaCompleta = [];
+        let dadosTabelaFiltrados = [];
+        let ordenacaoAtual = { coluna: null, direcao: 'asc' };
+
+        async function carregarTabelaComparativa() {
+            const btnCarregar = document.getElementById('btn-carregar-tabela');
+            const tabelaBody = document.getElementById('tabela-body');
+            const filtrosContainer = document.getElementById('filtros-container');
+            
+            btnCarregar.disabled = true;
+            btnCarregar.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i> Carregando...';
+            lucide.createIcons();
+            tabelaBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center">Carregando dados...</td></tr>';
+
+            try {
+                // Tentar primeiro com URL relativa (se houver proxy)
+                let response;
+                try {
+                    response = await axios.get('/api/tabela-comparativa');
+                } catch (proxyError) {
+                    // Se falhar, tentar URL absoluta
+                    response = await axios.get('http://localhost:5000/api/tabela-comparativa');
+                }
+                
+                if (response.data.success) {
+                    dadosTabelaCompleta = response.data.tabela;
+                    dadosTabelaFiltrados = [...dadosTabelaCompleta];
+                    
+                    // Preencher filtros
+                    preencherFiltros();
+                    
+                    // Exibir tabela
+                    exibirTabelaComparativa();
+                    filtrosContainer.style.display = 'grid';
+                    
+                    document.getElementById('total-tabela').textContent = dadosTabelaCompleta.length;
+                } else {
+                    throw new Error(response.data.error || 'Erro ao carregar tabela');
+                }
+                } catch (error) {
+                console.error('Erro:', error);
+                const errorMsg = error.response?.data?.error || error.message || 'Erro desconhecido';
+                tabelaBody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-red-500">Erro: ${errorMsg}<br><small>Verifique se o backend está rodando em http://localhost:5000</small></td></tr>`;
+                // Não mostrar alert se for erro 404 (sem dados ainda)
+                if (error.response?.status !== 404) {
+                    console.error('Detalhes do erro:', error.response?.data);
+                }
+            } finally {
+                btnCarregar.disabled = false;
+                btnCarregar.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Carregar Tabela';
+                lucide.createIcons();
+            }
+        }
+
+        function preencherFiltros() {
+            // Segmentos únicos
+            const segmentos = [...new Set(dadosTabelaCompleta.map(item => item.Segmento))].sort();
+            const selectSegmento = document.getElementById('filtro-segmento');
+            selectSegmento.innerHTML = '<option value="">Todos</option>' + 
+                segmentos.map(s => `<option value="${s}">${s}</option>`).join('');
+
+            // Marcas únicas
+            const marcas = [...new Set(dadosTabelaCompleta.map(item => item.Marca))].sort();
+            const selectMarca = document.getElementById('filtro-marca');
+            selectMarca.innerHTML = '<option value="">Todas</option>' + 
+                marcas.map(m => `<option value="${m}">${m}</option>`).join('');
+
+            // Mercados únicos
+            const mercados = [...new Set(dadosTabelaCompleta.map(item => item.Mercado))].sort();
+            const selectMercado = document.getElementById('filtro-mercado');
+            selectMercado.innerHTML = '<option value="">Todos</option>' + 
+                mercados.map(m => `<option value="${m}">${m}</option>`).join('');
+        }
+
+        function aplicarFiltros() {
+            const filtroSegmento = document.getElementById('filtro-segmento').value.toLowerCase();
+            const filtroProduto = document.getElementById('filtro-produto').value.toLowerCase();
+            const filtroMarca = document.getElementById('filtro-marca').value.toLowerCase();
+            const filtroMercado = document.getElementById('filtro-mercado').value.toLowerCase();
+
+            dadosTabelaFiltrados = dadosTabelaCompleta.filter(item => {
+                const matchSegmento = !filtroSegmento || item.Segmento.toLowerCase().includes(filtroSegmento);
+                const matchProduto = !filtroProduto || item.Produto.toLowerCase().includes(filtroProduto);
+                const matchMarca = !filtroMarca || item.Marca.toLowerCase().includes(filtroMarca);
+                const matchMercado = !filtroMercado || item.Mercado.toLowerCase().includes(filtroMercado);
+                
+                return matchSegmento && matchProduto && matchMarca && matchMercado;
+            });
+
+            // Aplicar ordenação se houver
+            if (ordenacaoAtual.coluna) {
+                ordenarDados(ordenacaoAtual.coluna, ordenacaoAtual.direcao);
+            }
+
+            exibirTabelaComparativa();
+            document.getElementById('total-tabela-filtrado').textContent = dadosTabelaFiltrados.length;
+        }
+
+        function ordenarTabela(coluna) {
+            if (ordenacaoAtual.coluna === coluna) {
+                ordenacaoAtual.direcao = ordenacaoAtual.direcao === 'asc' ? 'desc' : 'asc';
+            } else {
+                ordenacaoAtual.coluna = coluna;
+                ordenacaoAtual.direcao = 'asc';
+            }
+            
+            ordenarDados(coluna, ordenacaoAtual.direcao);
+            exibirTabelaComparativa();
+            lucide.createIcons();
+        }
+
+        function ordenarDados(coluna, direcao) {
+            dadosTabelaFiltrados.sort((a, b) => {
+                let valorA = a[coluna];
+                let valorB = b[coluna];
+                
+                // Converter preço para número se necessário
+                if (coluna === 'Menor Preço') {
+                    valorA = parseFloat(valorA.replace('R$', '').replace(',', '.').trim());
+                    valorB = parseFloat(valorB.replace('R$', '').replace(',', '.').trim());
+                }
+                
+                if (direcao === 'asc') {
+                    return valorA > valorB ? 1 : valorA < valorB ? -1 : 0;
+                } else {
+                    return valorA < valorB ? 1 : valorA > valorB ? -1 : 0;
+                }
+            });
+        }
+
+        function exibirTabelaComparativa() {
+            const tabelaBody = document.getElementById('tabela-body');
+            
+            if (dadosTabelaFiltrados.length === 0) {
+                tabelaBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Nenhum resultado encontrado com os filtros aplicados</td></tr>';
+                return;
+            }
+
+            tabelaBody.innerHTML = dadosTabelaFiltrados.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${item.Segmento}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${item.Produto}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${item.Marca}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${item.Qtd}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-green-600">${item['Menor Preço']}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${item.Mercado}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm">
+                        ${item.Link && item.Link !== 'N/A' && item.Link !== '' 
+                            ? `<a href="${item.Link}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">Link</a>`
+                            : '<span class="text-gray-400">-</span>'
+                        }
+                    </td>
+                </tr>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function exportarTabelaCSV() {
+            if (dadosTabelaFiltrados.length === 0) {
+                alert('Carregue a tabela primeiro!');
+                return;
+            }
+
+            const headers = ['Segmento', 'Produto', 'Marca', 'Qtd', 'Menor Preço', 'Mercado', 'Link'];
+            const csvContent = [
+                headers.join(','),
+                ...dadosTabelaFiltrados.map(item => [
+                    `"${item.Segmento}"`,
+                    `"${item.Produto}"`,
+                    `"${item.Marca}"`,
+                    `"${item.Qtd}"`,
+                    `"${item['Menor Preço']}"`,
+                    `"${item.Mercado}"`,
+                    `"${item.Link || ''}"`
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `tabela_comparativa_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>

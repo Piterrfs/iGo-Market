@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela Comparativa - iGo Market</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        tr:hover {
+            background-color: #e5e7eb;
+        }
+        .link-cell {
+            color: #3b82f6;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg rounded-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold mb-2">📊 Tabela Comparativa de Preços</h1>
+            <p class="text-blue-100">iGo Market - Comparador de Preços RJ</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
+                <div>
+                    <p class="text-gray-600">Total de produtos: <span id="total-produtos" class="font-bold text-blue-600">0</span></p>
+                </div>
+                <div class="flex gap-2">
+                    <button
+                        onclick="carregarTabela()"
+                        id="btn-carregar"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 flex items-center gap-2"
+                    >
+                        🔄 Atualizar Tabela
+                    </button>
+                    <button
+                        onclick="exportarCSV()"
+                        class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 flex items-center gap-2"
+                    >
+                        📥 Exportar CSV
+                    </button>
+                </div>
+            </div>
+
+            <div id="loading" class="text-center py-8" style="display: none;">
+                <p class="text-gray-600">Carregando tabela...</p>
+            </div>
+
+            <div id="erro" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" style="display: none;">
+                <p class="text-red-800" id="mensagem-erro"></p>
+            </div>
+
+            <div id="tabela-container" class="overflow-x-auto">
+                <table id="tabela-comparativa" class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th>Segmento</th>
+                            <th>Produto</th>
+                            <th>Marca</th>
+                            <th>Qtd</th>
+                            <th>Menor Preço</th>
+                            <th>Mercado</th>
+                            <th>Link</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-body">
+                        <tr>
+                            <td colspan="7" class="text-center py-8 text-gray-500">
+                                Clique em "Atualizar Tabela" para carregar os dados
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dadosTabela = [];
+
+        async function carregarTabela() {
+            const btnCarregar = document.getElementById('btn-carregar');
+            const loading = document.getElementById('loading');
+            const erro = document.getElementById('erro');
+            const tabelaBody = document.getElementById('tabela-body');
+            
+            btnCarregar.disabled = true;
+            loading.style.display = 'block';
+            erro.style.display = 'none';
+            tabelaBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Carregando...</td></tr>';
+
+            try {
+                const response = await axios.get('http://localhost:5000/api/tabela-comparativa');
+                
+                if (response.data.success) {
+                    dadosTabela = response.data.tabela;
+                    exibirTabela(dadosTabela);
+                    document.getElementById('total-produtos').textContent = response.data.total;
+                } else {
+                    throw new Error(response.data.error || 'Erro ao carregar tabela');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                erro.style.display = 'block';
+                document.getElementById('mensagem-erro').textContent = 
+                    error.response?.data?.error || error.message || 'Erro ao carregar tabela. Verifique se o backend está rodando.';
+                tabelaBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-red-500">Erro ao carregar dados</td></tr>';
+            } finally {
+                btnCarregar.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        function exibirTabela(dados) {
+            const tabelaBody = document.getElementById('tabela-body');
+            
+            if (dados.length === 0) {
+                tabelaBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">Nenhum dado disponível</td></tr>';
+                return;
+            }
+
+            tabelaBody.innerHTML = dados.map(item => `
+                <tr>
+                    <td>${item.Segmento}</td>
+                    <td>${item.Produto}</td>
+                    <td>${item.Marca}</td>
+                    <td>${item.Qtd}</td>
+                    <td class="font-bold text-green-600">${item['Menor Preço']}</td>
+                    <td>${item.Mercado}</td>
+                    <td>
+                        ${item.Link && item.Link !== 'N/A' 
+                            ? `<a href="${item.Link}" target="_blank" class="link-cell">Link</a>`
+                            : '<span class="text-gray-400">-</span>'
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function exportarCSV() {
+            if (dadosTabela.length === 0) {
+                alert('Carregue a tabela primeiro!');
+                return;
+            }
+
+            // Criar CSV
+            const headers = ['Segmento', 'Produto', 'Marca', 'Qtd', 'Menor Preço', 'Mercado', 'Link'];
+            const csvContent = [
+                headers.join(','),
+                ...dadosTabela.map(item => [
+                    `"${item.Segmento}"`,
+                    `"${item.Produto}"`,
+                    `"${item.Marca}"`,
+                    `"${item.Qtd}"`,
+                    `"${item['Menor Preço']}"`,
+                    `"${item.Mercado}"`,
+                    `"${item.Link}"`
+                ].join(','))
+            ].join('\n');
+
+            // Download
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `tabela_comparativa_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Carregar tabela ao iniciar
+        window.addEventListener('load', () => {
+            carregarTabela();
+        });
+    </script>
+</body>
+</html>

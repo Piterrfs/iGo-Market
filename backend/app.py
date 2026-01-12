@@ -5,7 +5,7 @@ from datetime import datetime
 from scraper import MercadoScraper
 from ocr_processor import OCRProcessor
 from comparador import ComparadorPrecos
-from config import CSV_DIR, DATA_DIR
+from config import CSV_DIR, DATA_DIR, MERCADOS
 import pandas as pd
 import json
 
@@ -147,6 +147,113 @@ def calcular_carrinho():
         return jsonify({
             'success': True,
             'resultado': resultado
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tabela-comparativa', methods=['GET'])
+def gerar_tabela_comparativa():
+    """Gera tabela comparativa de preços no formato solicitado"""
+    try:
+        comparador.carregar_dados()
+        
+        if comparador.df is None or comparador.df.empty:
+            return jsonify({'error': 'Nenhum dado disponível. Execute o scraping primeiro.'}), 404
+        
+        df = comparador.df.copy()
+        
+        # Normalizar nomes das colunas (case-insensitive) ANTES de verificar
+        df.columns = df.columns.str.lower().str.strip()
+        
+        # Garantir que temos os campos necessários
+        if 'segmento' not in df.columns:
+            df['segmento'] = 'Outros'
+        if 'url_fonte' not in df.columns:
+            df['url_fonte'] = ''
+        
+        # Verificar se temos as colunas necessárias para agrupar
+        
+        # Mapear possíveis variações de nomes
+        mapeamento_colunas = {
+            'product': 'produto',
+            'item': 'produto',
+            'brand': 'marca',
+            'quantity': 'quantidade',
+            'qtd': 'quantidade',
+            'price': 'preco',
+            'preço': 'preco',
+            'market': 'mercado',
+            'store': 'mercado'
+        }
+        
+        for col_antiga, col_nova in mapeamento_colunas.items():
+            if col_antiga in df.columns and col_nova not in df.columns:
+                df.rename(columns={col_antiga: col_nova}, inplace=True)
+        
+        colunas_necessarias = ['produto', 'marca', 'quantidade']
+        colunas_faltantes = [col for col in colunas_necessarias if col not in df.columns]
+        if colunas_faltantes:
+            return jsonify({
+                'error': f'Colunas faltantes no CSV: {", ".join(colunas_faltantes)}',
+                'colunas_disponiveis': list(df.columns),
+                'detalhes': 'Verifique se o CSV tem as colunas: produto, marca, quantidade, preco, mercado'
+            }), 400
+        
+        # Preencher valores NaN antes de agrupar
+        df['segmento'] = df['segmento'].fillna('Outros')
+        df['produto'] = df['produto'].fillna('Produto')
+        df['marca'] = df['marca'].fillna('Genérico')
+        df['quantidade'] = df['quantidade'].fillna('un')
+        
+        # Gerar tabela comparativa
+        tabela = []
+        try:
+            grupos = df.groupby(['segmento', 'produto', 'marca', 'quantidade'], dropna=False)
+            
+            for (segmento, produto, marca, qtd), grupo in grupos:
+                if grupo.empty:
+                    continue
+                    
+                grupo_ordenado = grupo.sort_values('preco')
+                menor_preco_item = grupo_ordenado.iloc[0]
+                
+                # Verificar se tem preço válido
+                preco_valor = menor_preco_item['preco']
+                if pd.isna(preco_valor) or (isinstance(preco_valor, (int, float)) and preco_valor <= 0):
+                    continue
+                
+                # Formatar preço
+                preco_formatado = f"R$ {menor_preco_item['preco']:.2f}".replace('.', ',')
+                
+                # Obter URL do mercado
+                mercado_nome = str(menor_preco_item['mercado']) if not pd.isna(menor_preco_item['mercado']) else 'Desconhecido'
+                url_mercado = str(menor_preco_item.get('url_fonte', '')) if not pd.isna(menor_preco_item.get('url_fonte', '')) else ''
+                if not url_mercado:
+                    # Buscar URL do mercado na configuração
+                    for key, mercado_info in MERCADOS.items():
+                        if mercado_info['nome'].lower() == mercado_nome.lower():
+                            url_mercado = mercado_info['url']
+                            break
+                
+                tabela.append({
+                    'Segmento': str(segmento) if not pd.isna(segmento) else 'Outros',
+                    'Produto': str(produto) if not pd.isna(produto) else 'Produto',
+                    'Marca': str(marca) if not pd.isna(marca) else 'Genérico',
+                    'Qtd': str(qtd) if not pd.isna(qtd) else 'un',
+                    'Menor Preço': preco_formatado,
+                    'Mercado': mercado_nome,
+                    'Link': url_mercado
+                })
+        except Exception as e:
+            return jsonify({'error': f'Erro ao processar dados: {str(e)}'}), 500
+        
+        # Ordenar por segmento e produto
+        tabela_ordenada = sorted(tabela, key=lambda x: (x['Segmento'], x['Produto'], x['Marca']))
+        
+        return jsonify({
+            'success': True,
+            'tabela': tabela_ordenada,
+            'total': len(tabela_ordenada)
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
