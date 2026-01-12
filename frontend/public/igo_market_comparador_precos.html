@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iGo Market - Comparador de Preços RJ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <main class="min-h-screen pb-8">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <h1 class="text-2xl md:text-3xl font-bold mb-2">
+                    🛒 iGo Market
+                </h1>
+                <p class="text-blue-100 text-sm md:text-base">
+                    Compare preços em supermercados do Rio de Janeiro
+                </p>
+            </div>
+        </header>
+
+        <!-- Estatísticas -->
+        <div id="estatisticas" class="container mx-auto px-4 mt-4">
+            <div class="bg-white rounded-lg shadow p-4 mb-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <p class="text-gray-600 text-xs">Produtos</p>
+                        <p id="total-produtos" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-xs">Mercados</p>
+                        <p id="total-mercados" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-xs">Preço Médio</p>
+                        <p id="preco-medio" class="text-2xl font-bold text-blue-600">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-xs">Última Atualização</p>
+                        <p id="data-atualizacao" class="text-sm font-semibold text-gray-700">N/A</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Busca -->
+        <div class="container mx-auto px-4 mt-4">
+            <div class="bg-white rounded-lg shadow-lg p-4">
+                <div class="flex flex-col md:flex-row gap-2">
+                    <div class="flex-1 relative">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"></i>
+                        <input
+                            type="text"
+                            id="input-busca"
+                            placeholder="Buscar produto (ex: arroz, leite, sabão)..."
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onkeypress="if(event.key === 'Enter') buscarProdutos()"
+                        />
+                    </div>
+                    <button
+                        onclick="buscarProdutos()"
+                        id="btn-buscar"
+                        class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        <i data-lucide="search" class="w-5 h-5"></i>
+                        Buscar
+                    </button>
+                </div>
+
+                <!-- Ações -->
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button
+                        onclick="executarScraping()"
+                        id="btn-atualizar"
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                    >
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span id="texto-atualizar">Atualizar Dados</span>
+                    </button>
+                    <button
+                        onclick="baixarPlanilha()"
+                        class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700 flex items-center gap-2"
+                    >
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        Baixar Planilha
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultados" class="container mx-auto px-4 mt-6" style="display: none;">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">
+                Resultados (<span id="total-resultados">0</span>)
+            </h2>
+            <div id="lista-resultados" class="space-y-4"></div>
+        </div>
+
+        <!-- Mensagem sem resultados -->
+        <div id="sem-resultados" class="container mx-auto px-4 mt-6" style="display: none;">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                <p class="text-yellow-800">
+                    Nenhum resultado encontrado. Tente atualizar os dados primeiro.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="container mx-auto px-4 mt-8 text-center text-gray-600 text-sm">
+            <p>iGo Market © 2026 - Comparador de Preços RJ</p>
+        </footer>
+    </main>
+
+    <script>
+        // Inicializar ícones Lucide
+        lucide.createIcons();
+
+        // Carregar estatísticas ao iniciar
+        carregarEstatisticas();
+
+        async function carregarEstatisticas() {
+            try {
+                const response = await axios.get('/api/estatisticas');
+                const stats = response.data;
+                
+                document.getElementById('total-produtos').textContent = stats.total_produtos || 0;
+                document.getElementById('total-mercados').textContent = stats.total_mercados || 0;
+                document.getElementById('preco-medio').textContent = formatarPreco(stats.preco_medio || 0);
+                document.getElementById('data-atualizacao').textContent = stats.data_atualizacao || 'N/A';
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        async function buscarProdutos() {
+            const busca = document.getElementById('input-busca').value.trim();
+            if (!busca) return;
+
+            const btnBuscar = document.getElementById('btn-buscar');
+            btnBuscar.disabled = true;
+            btnBuscar.innerHTML = '<i data-lucide="refresh-cw" class="w-5 h-5 animate-spin"></i> Buscando...';
+            lucide.createIcons();
+
+            try {
+                const response = await axios.get('/api/comparar', {
+                    params: { produto: busca }
+                });
+                
+                const resultados = response.data.resultados || [];
+                exibirResultados(resultados);
+            } catch (error) {
+                console.error('Erro ao buscar:', error);
+                alert('Erro ao buscar produtos. Verifique se o backend está rodando.');
+            } finally {
+                btnBuscar.disabled = false;
+                btnBuscar.innerHTML = '<i data-lucide="search" class="w-5 h-5"></i> Buscar';
+                lucide.createIcons();
+            }
+        }
+
+        function exibirResultados(resultados) {
+            const divResultados = document.getElementById('resultados');
+            const divSemResultados = document.getElementById('sem-resultados');
+            const listaResultados = document.getElementById('lista-resultados');
+            const totalResultados = document.getElementById('total-resultados');
+
+            if (resultados.length === 0) {
+                divResultados.style.display = 'none';
+                divSemResultados.style.display = 'block';
+                return;
+            }
+
+            divResultados.style.display = 'block';
+            divSemResultados.style.display = 'none';
+            totalResultados.textContent = resultados.length;
+
+            listaResultados.innerHTML = resultados.map((item, index) => `
+                <div class="bg-white rounded-lg shadow-lg p-4 border-l-4 border-blue-500">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">${item.produto}</h3>
+                            <p class="text-sm text-gray-600">${item.marca} • ${item.quantidade}</p>
+                        </div>
+                        <div class="mt-2 md:mt-0 text-right">
+                            <p class="text-2xl font-bold text-green-600">${formatarPreco(item.menor_preco)}</p>
+                            <p class="text-sm text-gray-600 flex items-center justify-end gap-1">
+                                <i data-lucide="store" class="w-4 h-4"></i>
+                                ${item.mercado_menor_preco}
+                            </p>
+                        </div>
+                    </div>
+
+                    ${item.economia > 0 ? `
+                        <div class="bg-green-50 rounded p-2 mb-3">
+                            <p class="text-sm text-green-700 flex items-center gap-1">
+                                <i data-lucide="trending-down" class="w-4 h-4"></i>
+                                Economia de ${formatarPreco(item.economia)} (${item.percentual_economia.toFixed(1)}%)
+                            </p>
+                        </div>
+                    ` : ''}
+
+                    ${item.is_isca ? `
+                        <div class="bg-yellow-50 border border-yellow-200 rounded p-2 mb-3">
+                            <p class="text-xs text-yellow-800 font-semibold">
+                                ⚠️ OPORTUNIDADE: Desconto acima de 30% - Considere estocar!
+                            </p>
+                        </div>
+                    ` : ''}
+
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <p class="text-xs text-gray-600 mb-2">Comparação em outros mercados:</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            ${item.todos_precos.map((preco, idx) => `
+                                <div class="text-xs p-2 rounded ${preco.mercado === item.mercado_menor_preco ? 'bg-green-100 text-green-800 font-semibold' : 'bg-gray-100 text-gray-700'}">
+                                    <p class="font-semibold">${preco.mercado}</p>
+                                    <p>${formatarPreco(preco.preco)}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        async function executarScraping() {
+            const btnAtualizar = document.getElementById('btn-atualizar');
+            const textoAtualizar = document.getElementById('texto-atualizar');
+            
+            btnAtualizar.disabled = true;
+            textoAtualizar.textContent = 'Atualizando...';
+            
+            const icon = btnAtualizar.querySelector('i');
+            if (icon) {
+                icon.classList.add('animate-spin');
+            }
+
+            try {
+                const response = await axios.post('/api/scrape');
+                alert(response.data.message);
+                carregarEstatisticas();
+                const busca = document.getElementById('input-busca').value.trim();
+                if (busca) buscarProdutos();
+            } catch (error) {
+                console.error('Erro ao atualizar:', error);
+                alert('Erro ao atualizar dados.');
+            } finally {
+                btnAtualizar.disabled = false;
+                textoAtualizar.textContent = 'Atualizar Dados';
+                if (icon) {
+                    icon.classList.remove('animate-spin');
+                }
+            }
+        }
+
+        async function baixarPlanilha() {
+            try {
+                const response = await axios.get('/api/planilha', {
+                    responseType: 'blob'
+                });
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `comparacao_precos_${new Date().toISOString().split('T')[0]}.xlsx`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            } catch (error) {
+                console.error('Erro ao baixar planilha:', error);
+                alert('Erro ao gerar planilha.');
+            }
+        }
+
+        function formatarPreco(preco) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(preco);
+        }
+    </script>
+</body>
+</html>
