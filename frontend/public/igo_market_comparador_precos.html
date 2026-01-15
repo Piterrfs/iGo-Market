@@ -152,7 +152,7 @@
                 </div>
 
                 <!-- Filtros -->
-                <div id="filtros-container" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4" style="display: none;">
+                <div id="filtros-container" class="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4" style="display: none;">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Segmento</label>
                         <select id="filtro-segmento" onchange="aplicarFiltros()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -172,6 +172,12 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Marca</label>
                         <select id="filtro-marca" onchange="aplicarFiltros()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Quantidade</label>
+                        <select id="filtro-quantidade" onchange="aplicarFiltros()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">Todas</option>
                         </select>
                     </div>
@@ -257,12 +263,7 @@
 
         async function carregarEstatisticas() {
             try {
-                let response;
-                try {
-                    response = await axios.get('/api/estatisticas');
-                } catch (proxyError) {
-                    response = await axios.get('http://localhost:5000/api/estatisticas');
-                }
+                const response = await axios.get('http://localhost:5000/api/estatisticas');
                 const stats = response.data;
                 
                 document.getElementById('total-produtos').textContent = stats.total_produtos || 0;
@@ -276,7 +277,17 @@
 
         async function buscarProdutos() {
             const busca = document.getElementById('input-busca').value.trim();
-            if (!busca) return;
+            if (!busca) {
+                // Se busca vazia, limpar filtros e mostrar todos os produtos
+                document.getElementById('filtro-produto').value = '';
+                if (dadosTabelaCompleta.length > 0) {
+                    aplicarFiltros();
+                }
+                // Limpar resultados da busca
+                document.getElementById('resultados').style.display = 'none';
+                document.getElementById('sem-resultados').style.display = 'none';
+                return;
+            }
 
             const btnBuscar = document.getElementById('btn-buscar');
             btnBuscar.disabled = true;
@@ -284,15 +295,22 @@
             lucide.createIcons();
 
             try {
-                const response = await axios.get('/api/comparar', {
+                // Usar URL completa do backend
+                const response = await axios.get('http://localhost:5000/api/comparar', {
                     params: { produto: busca }
                 });
                 
                 const resultados = response.data.resultados || [];
                 exibirResultados(resultados);
+                
+                // Aplicar filtro na tabela também se já estiver carregada
+                if (dadosTabelaCompleta.length > 0) {
+                    document.getElementById('filtro-produto').value = busca;
+                    aplicarFiltros();
+                }
             } catch (error) {
                 console.error('Erro ao buscar:', error);
-                alert('Erro ao buscar produtos. Verifique se o backend está rodando.');
+                alert('Erro ao buscar produtos. Verifique se o backend está rodando em http://localhost:5000');
             } finally {
                 btnBuscar.disabled = false;
                 btnBuscar.innerHTML = '<i data-lucide="search" class="w-5 h-5"></i> Buscar';
@@ -379,7 +397,7 @@
             }
 
             try {
-                const response = await axios.post('/api/scrape');
+                const response = await axios.post('http://localhost:5000/api/scrape');
                 alert(response.data.message);
                 carregarEstatisticas();
                 const busca = document.getElementById('input-busca').value.trim();
@@ -398,7 +416,7 @@
 
         async function baixarPlanilha() {
             try {
-                const response = await axios.get('/api/planilha', {
+                const response = await axios.get('http://localhost:5000/api/planilha', {
                     responseType: 'blob'
                 });
                 const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -437,14 +455,8 @@
             tabelaBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center">Carregando dados...</td></tr>';
 
             try {
-                // Tentar primeiro com URL relativa (se houver proxy)
-                let response;
-                try {
-                    response = await axios.get('/api/tabela-comparativa');
-                } catch (proxyError) {
-                    // Se falhar, tentar URL absoluta
-                    response = await axios.get('http://localhost:5000/api/tabela-comparativa');
-                }
+                // Usar sempre URL absoluta do backend
+                const response = await axios.get('http://localhost:5000/api/tabela-comparativa');
                 
                 if (response.data.success) {
                     dadosTabelaCompleta = response.data.tabela;
@@ -489,6 +501,12 @@
             selectMarca.innerHTML = '<option value="">Todas</option>' + 
                 marcas.map(m => `<option value="${m}">${m}</option>`).join('');
 
+            // Quantidades únicas
+            const quantidades = [...new Set(dadosTabelaCompleta.map(item => item.Qtd))].sort();
+            const selectQuantidade = document.getElementById('filtro-quantidade');
+            selectQuantidade.innerHTML = '<option value="">Todas</option>' + 
+                quantidades.map(q => `<option value="${q}">${q}</option>`).join('');
+
             // Mercados únicos
             const mercados = [...new Set(dadosTabelaCompleta.map(item => item.Mercado))].sort();
             const selectMercado = document.getElementById('filtro-mercado');
@@ -497,18 +515,24 @@
         }
 
         function aplicarFiltros() {
+            if (dadosTabelaCompleta.length === 0) {
+                return; // Não aplicar filtros se não houver dados
+            }
+
             const filtroSegmento = document.getElementById('filtro-segmento').value.toLowerCase();
             const filtroProduto = document.getElementById('filtro-produto').value.toLowerCase();
             const filtroMarca = document.getElementById('filtro-marca').value.toLowerCase();
+            const filtroQuantidade = document.getElementById('filtro-quantidade').value.toLowerCase();
             const filtroMercado = document.getElementById('filtro-mercado').value.toLowerCase();
 
             dadosTabelaFiltrados = dadosTabelaCompleta.filter(item => {
-                const matchSegmento = !filtroSegmento || item.Segmento.toLowerCase().includes(filtroSegmento);
-                const matchProduto = !filtroProduto || item.Produto.toLowerCase().includes(filtroProduto);
-                const matchMarca = !filtroMarca || item.Marca.toLowerCase().includes(filtroMarca);
-                const matchMercado = !filtroMercado || item.Mercado.toLowerCase().includes(filtroMercado);
+                const matchSegmento = !filtroSegmento || (item.Segmento && item.Segmento.toLowerCase().includes(filtroSegmento));
+                const matchProduto = !filtroProduto || (item.Produto && item.Produto.toLowerCase().includes(filtroProduto));
+                const matchMarca = !filtroMarca || (item.Marca && item.Marca.toLowerCase().includes(filtroMarca));
+                const matchQuantidade = !filtroQuantidade || (item.Qtd && item.Qtd.toLowerCase().includes(filtroQuantidade));
+                const matchMercado = !filtroMercado || (item.Mercado && item.Mercado.toLowerCase().includes(filtroMercado));
                 
-                return matchSegmento && matchProduto && matchMarca && matchMercado;
+                return matchSegmento && matchProduto && matchMarca && matchQuantidade && matchMercado;
             });
 
             // Aplicar ordenação se houver

@@ -1,0 +1,128 @@
+[
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Arroz Branco",
+    "Marca": "Carreteiro",
+    "Qtd": "5kg",
+    "Menor Preço": "R$ 18,95",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Arroz Branco",
+    "Marca": "Combrasil",
+    "Qtd": "5kg",
+    "Menor Preço": "R$ 18,95",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Arroz Branco",
+    "Marca": "Genérico",
+    "Qtd": "5Kg",
+    "Menor Preço": "R$ 19,95",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Arroz Branco",
+    "Marca": "Genérico",
+    "Qtd": "5kg",
+    "Menor Preço": "R$ 27,95",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Arroz Branco",
+    "Marca": "Ouro Nobre",
+    "Qtd": "5Kg",
+    "Menor Preço": "R$ 13,95",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Arroz Branco",
+    "Marca": "Rei do Sul",
+    "Qtd": "5kg",
+    "Menor Preço": "R$ 13,95",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Farinha de Trigo",
+    "Marca": "Globo",
+    "Qtd": "un",
+    "Menor Preço": "R$ 2,99",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Feijão Preto",
+    "Marca": "Combrasil",
+    "Qtd": "un",
+    "Menor Preço": "R$ 4,99",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Feijão Preto",
+    "Marca": "Copa",
+    "Qtd": "un",
+    "Menor Preço": "R$ 3,99",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Feijão Preto",
+    "Marca": "Genérico",
+    "Qtd": "un",
+    "Menor Preço": "R$ 2,99",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Feijão Preto",
+    "Marca": "Kicaldo",
+    "Qtd": "1kg",
+    "Menor Preço": "R$ 4,99",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Feijão Preto",
+    "Marca": "Panela de Barro",
+    "Qtd": "1kg",
+    "Menor Preço": "R$ 3,99",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Feijão Preto",
+    "Marca": "Sanes",
+    "Qtd": "un",
+    "Menor Preço": "R$ 2,99",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  },
+  {
+    "Segmento": "Mercearia",
+    "Produto": "Pipoca Microondas",
+    "Marca": "Yoki",
+    "Qtd": "90g",
+    "Menor Preço": "R$ 4,62",
+    "Mercado": "Guanabara",
+    "Link": "https://www.supermercadosguanabara.com.br/produtos"
+  }
+]
