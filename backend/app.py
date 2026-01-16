@@ -354,6 +354,50 @@ def gerar_tabela_comparativa():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+def corrigir_encoding(texto):
+    """Corrige erros de encoding comuns em textos"""
+    try:
+        # Verificar se é None, NaN ou vazio
+        if texto is None:
+            return texto
+        if hasattr(pd, 'isna') and pd.isna(texto):
+            return texto
+        if not texto:
+            return texto
+        
+        # Converter para string de forma segura
+        if not isinstance(texto, str):
+            texto_str = str(texto)
+        else:
+            texto_str = texto
+        
+        # Correções de encoding (ISO-8859-1 interpretado como UTF-8)
+        correcoes = {
+            'Ã¡': 'á', 'Ã©': 'é', 'Ã­': 'í', 'Ã³': 'ó', 'Ãº': 'ú',
+            'Ã£': 'ã', 'Ã§': 'ç', 'Ã¢': 'â', 'Ãª': 'ê', 'Ã´': 'ô',
+            'Ã ': 'à', 'Ã‰': 'É', 'Ã"': 'Á', 'Ã\'': 'Í', 'Ã"': 'Ó',
+            'Ãš': 'Ú', 'Ãƒ': 'Ã', 'Ã‡': 'Ç', 'Ã‚': 'Â', 'ÃŠ': 'Ê',
+            'Ã"': 'Ô', 'Ã€': 'À', 'Ã¼': 'ü', 'Ãœ': 'Ü', 'Ã±': 'ñ',
+            'Ã\'': 'Ñ',
+            # Correções específicas mencionadas
+            'Ã¡gua': 'Água', 'LaticÃ­nios': 'Laticínios', 'FilÃ©': 'Filé',
+            'atÃ£o': 'Latão', 'AÃ§ougue': 'Açougue', 'YpÃª': 'Ypê',
+            'SABÃ': 'Sabão', 'TÃ´nica': 'Tônica', 'PiraquÃª': 'Piraquê',
+            'Ã­quido': 'Líquido', 'BebÃª': 'Bebê', 'AÃ§Ãºcar': 'Açúcar',
+            'Ã¡ctea': 'Láctea', 'CafÃ©': 'Café', 'CoraÃ§Ãµes': 'Corações',
+            'UniÃ£o': 'União', 'FeijÃ£o': 'Feijão', 'FarinÃ¡ceos': 'Farináceos',
+            'FÃ¡cil': 'Fácil', 'SanitÃ¡ria': 'Sanitária'
+        }
+        
+        for erro, correto in correcoes.items():
+            texto_str = texto_str.replace(erro, correto)
+        
+        return texto_str
+    except Exception as e:
+        # Se houver qualquer erro, retornar o texto original
+        print(f"Aviso: Erro ao corrigir encoding: {e}")
+        return texto if texto is not None else ''
+
 def ler_google_sheets():
     """Lê dados da planilha do Google Sheets via API pública"""
     try:
@@ -374,6 +418,8 @@ def ler_google_sheets():
         try:
             # Tentar primeiro sem SSL (mais comum em ambientes corporativos)
             response = requests.get(url, timeout=20, verify=False)
+            # Garantir encoding UTF-8
+            response.encoding = 'utf-8'
             print(f"Resposta recebida (sem SSL): Status {response.status_code}")
             print(f"Tamanho da resposta: {len(response.text)} caracteres")
         except Exception as req_error:
@@ -382,6 +428,8 @@ def ler_google_sheets():
             print("Tentando com SSL...")
             try:
                 response = requests.get(url, timeout=20, verify=True)
+                # Garantir encoding UTF-8
+                response.encoding = 'utf-8'
                 print(f"Resposta recebida (com SSL): Status {response.status_code}")
                 print(f"Tamanho da resposta: {len(response.text)} caracteres")
             except Exception as ssl_error:
@@ -390,10 +438,14 @@ def ler_google_sheets():
         
         response.raise_for_status()
         
-        # Ler CSV
+        # Ler CSV com encoding UTF-8
         print("Lendo CSV...")
         from io import StringIO
-        df = pd.read_csv(StringIO(response.text))
+        # Garantir que o texto está em UTF-8
+        texto_csv = response.text
+        if isinstance(texto_csv, bytes):
+            texto_csv = texto_csv.decode('utf-8', errors='replace')
+        df = pd.read_csv(StringIO(texto_csv), encoding='utf-8')
         print(f"DataFrame criado: {len(df)} linhas, {len(df.columns)} colunas")
         
         # Normalizar nomes das colunas
@@ -470,14 +522,23 @@ def ler_google_sheets():
             except:
                 continue
             
+            # Aplicar correção de encoding aos campos de texto
+            segmento = corrigir_encoding(row[col_segmento]) if not pd.isna(row[col_segmento]) else 'Outros'
+            produto = corrigir_encoding(row[col_produto])
+            marca = corrigir_encoding(row[col_marca]) if not pd.isna(row[col_marca]) else 'Genérico'
+            qtd = corrigir_encoding(row[col_qtd]) if not pd.isna(row[col_qtd]) else 'un'
+            preco = str(row[col_preco]) if not pd.isna(row[col_preco]) else 'R$ 0,00'
+            mercado = corrigir_encoding(row[col_mercado]) if not pd.isna(row[col_mercado]) else 'Desconhecido'
+            link = str(row[col_link]) if not pd.isna(row[col_link]) else ''
+            
             tabela.append({
-                'Segmento': str(row[col_segmento]) if not pd.isna(row[col_segmento]) else 'Outros',
-                'Produto': str(row[col_produto]),
-                'Marca': str(row[col_marca]) if not pd.isna(row[col_marca]) else 'Genérico',
-                'Qtd': str(row[col_qtd]) if not pd.isna(row[col_qtd]) else 'un',
-                'Menor Preço': str(row[col_preco]) if not pd.isna(row[col_preco]) else 'R$ 0,00',
-                'Mercado': str(row[col_mercado]) if not pd.isna(row[col_mercado]) else 'Desconhecido',
-                'Link': str(row[col_link]) if not pd.isna(row[col_link]) else ''
+                'Segmento': str(segmento),
+                'Produto': str(produto),
+                'Marca': str(marca),
+                'Qtd': str(qtd),
+                'Menor Preço': preco,
+                'Mercado': str(mercado),
+                'Link': link
             })
             
             # Log a cada 20 produtos

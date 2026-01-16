@@ -1,0 +1,165 @@
+FONTES DE PRODUTOS - TODOS OS SUPERMERCADOS
+===========================================
+
+Data: 12/01/2026
+
+GUANABARA - CATEGORIAS
+----------------------
+Açougue
+https://www.supermercadosguanabara.com.br/produtos/42
+
+FRIOS E LATICÍNIOS
+https://www.supermercadosguanabara.com.br/produtos/62
+
+LIMPEZA
+https://www.supermercadosguanabara.com.br/produtos/102
+
+BEBIDA
+https://www.supermercadosguanabara.com.br/produtos/82
+
+BISCOITO
+https://www.supermercadosguanabara.com.br/produtos/32
+
+MASSAS
+https://www.supermercadosguanabara.com.br/produtos/22
+
+CONSERVAS
+https://www.supermercadosguanabara.com.br/produtos/92
+
+CANTINHO DO BEBÊ
+https://www.supermercadosguanabara.com.br/produtos/203
+
+EMBUTIDOS
+https://www.supermercadosguanabara.com.br/produtos/52
+
+MATINAIS E PADARIA
+https://www.supermercadosguanabara.com.br/produtos/12
+
+SALGADOS
+https://www.supermercadosguanabara.com.br/produtos/72
+
+CEREAIS E FARINACEOS
+https://www.supermercadosguanabara.com.br/produtos
+
+BOMBOM
+https://www.supermercadosguanabara.com.br/produtos/152
+
+================================================================================
+FONTES DE ENCARTES E OFERTAS
+================================================================================
+
+GUANABARA - ENCARTE
+https://www.supermercadosguanabara.com.br/encarte
+
+MUNDIAL - OFERTAS
+-----------------
+Ofertas Gerais
+https://www.supermercadosmundial.com.br/ofertas
+
+Ofertas (Página 1)
+https://www.supermercadosmundial.com.br/departamentos/categoria/ofertas?utm_source=chatgpt.com&page=1
+
+Grãos e Cereais
+https://www.supermercadosmundial.com.br/departamentos/categoria/ofertas?utm_source=chatgpt.com&page=1&productCategory=34
+
+Frios, Salames, Embutidos e Queijos
+https://www.supermercadosmundial.com.br/departamentos/categoria/ofertas?utm_source=chatgpt.com&page=1&productCategory=13&productCategory=14
+
+SUPERMARKET - OFERTAS
+---------------------
+Ofertas
+https://redesupermarket.com.br/ofertas/
+
+PREZUNIC - OFERTAS E ENCARTE
+----------------------------
+Ofertas
+https://www.prezunic.com.br/ofertas
+
+Encarte
+https://blog.prezunic.com.br/encarte/
+
+CARREFOUR - PRODUTOS
+---------------------
+Carne Bovina
+https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=carnes-bovinas&count=60
+
+Aves
+https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=aves
+
+Linguiça
+https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=linguica
+
+Suína
+https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=carne-suina
+
+Itens para Churrasco
+https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=hamburguer%7Ctemperos-e-condimentos%7Cpaes-e-torradas%7Cgelo%7Calimentos-basicos%7Cchurrasco
+
+Queijo (Página 1)
+https://mercado.carrefour.com.br/busca/queijo?count=60
+
+Queijo (Página 2)
+https://mercado.carrefour.com.br/busca/queijo?count=60&page=2
+
+Queijo (Página 3)
+https://mercado.carrefour.com.br/busca/queijo?count=60&page=3
+
+================================================================================
+NOTAS SOBRE O SCRAPING
+================================================================================
+
+PROBLEMA IDENTIFICADO: Produto "Queijo Prato" não encontrado
+------------------------------------------------------------
+Produto: Queijo Prato
+Preço: R$28,80/kg
+Fonte: Mundial - Frios, Salames, Embutidos e Queijos
+URL: https://www.supermercadosmundial.com.br/departamentos/categoria/ofertas?utm_source=chatgpt.com&page=1&productCategory=13&productCategory=14
+
+POSSÍVEIS CAUSAS:
+1. O padrão regex pode não estar capturando preços no formato "R$28,80/kg"
+2. O produto pode estar em uma estrutura HTML diferente
+3. O preço pode estar separado do nome do produto no HTML
+
+CORREÇÕES APLICADAS:
+1. Melhorado o padrão regex para capturar preços com "R$" e "/kg"
+2. Adicionado suporte para formato "por R$XX,XX kg"
+3. Expandido o padrão para aceitar mais variações de formato de preço
+
+================================================================================
+CORREÇÕES DE ENCODING APLICADAS
+================================================================================
+
+Os seguintes erros de encoding foram corrigidos no script:
+
+"Ã¡gua" → "Água"
+"LaticÃ­nios" → "Laticínios"
+"FilÃ©" → "Filé"
+"atÃ£o" → "Latão"
+"AÃ§ougue" → "Açougue"
+"YpÃª" → "Ypê"
+"SABÃ" → "Sabão"
+"TÃ´nica" → "Tônica"
+"PiraquÃª" → "Piraquê"
+"Ã­quido" → "Líquido"
+"BebÃª" → "Bebê"
+"AÃ§Ãºcar" → "Açúcar"
+"Ã¡ctea" → "Láctea"
+"CafÃ©" → "Café"
+"CoraÃ§Ãµes" → "Corações"
+"UniÃ£o" → "União"
+"FeijÃ£o" → "Feijão"
+"FarinÃ¡ceos" → "Farináceos"
+"FÃ¡cil" → "Fácil"
+"SanitÃ¡ria" → "Sanitária"
+
+================================================================================
+TOTAL DE FONTES
+================================================================================
+
+Guanabara: 13 categorias + 1 encarte = 14 fontes
+Mundial: 4 fontes de ofertas
+Supermarket: 1 fonte
+Prezunic: 2 fontes
+Carrefour: 7 fontes
+
+TOTAL: 28 fontes de produtos

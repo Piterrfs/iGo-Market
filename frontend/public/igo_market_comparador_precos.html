@@ -25,6 +25,12 @@
             border-bottom: 2px solid #e5e7eb;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        #abas-mercados button {
+            transition: all 0.2s;
+        }
+        #abas-mercados button:hover {
+            color: #2563eb;
+        }
         .tabela-wrapper {
             max-height: calc(100vh - 350px);
             overflow-y: auto;
@@ -171,35 +177,44 @@
                     </p>
                 </div>
 
+                <!-- Abas de Mercados -->
+                <div id="abas-mercados" class="mb-4" style="display: none;">
+                    <div class="flex flex-wrap gap-2 border-b border-gray-200">
+                        <button onclick="mostrarTodosMercados()" id="aba-todos" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600">
+                            Todos
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Tabela -->
                 <div class="overflow-x-auto tabela-wrapper">
                     <table id="tabela-comparativa" class="min-w-full border-collapse">
                         <thead>
                             <tr class="bg-blue-600 text-white">
-                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Segmento')">
+                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Segmento')">
                                     Segmento <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Produto')">
+                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Produto')">
                                     Produto <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Marca')">
+                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Marca')">
                                     Marca <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Qtd')">
+                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Qtd')">
                                     Qtd <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Menor Preço')">
-                                    Menor Preço <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
+                                <th id="coluna-precos-header" class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider" colspan="1">
+                                    Comparação de Preços
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Mercado')">
-                                    Mercado <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Link</th>
+                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Link</th>
+                            </tr>
+                            <tr id="sub-header-mercados" class="bg-blue-500 text-white">
+                                <!-- Sub-headers de mercados serão inseridos aqui dinamicamente -->
                             </tr>
                         </thead>
                         <tbody id="tabela-body" class="bg-white divide-y divide-gray-200">
                             <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">
                                     Carregando dados...
                                 </td>
                             </tr>
@@ -395,7 +410,10 @@
         // ===== FUNÇÕES DA TABELA COMPARATIVA =====
         let dadosTabelaCompleta = [];
         let dadosTabelaFiltrados = [];
+        let dadosAgrupados = [];
         let ordenacaoAtual = { coluna: null, direcao: 'asc' };
+        let mercadoAtivo = 'todos';
+        let mercadosDisponiveis = [];
 
         async function carregarTabelaComparativa() {
             const tabelaBody = document.getElementById('tabela-body');
@@ -410,6 +428,15 @@
                 if (response.data.success) {
                     dadosTabelaCompleta = response.data.tabela;
                     dadosTabelaFiltrados = [...dadosTabelaCompleta];
+                    
+                    // Agrupar produtos por produto+marca+unidade
+                    agruparProdutos();
+                    
+                    // Obter mercados únicos
+                    mercadosDisponiveis = [...new Set(dadosTabelaCompleta.map(item => item.Mercado))].sort();
+                    
+                    // Criar abas de mercados
+                    criarAbasMercados();
                     
                     // Preencher filtros
                     preencherFiltros();
@@ -431,6 +458,95 @@
                     console.error('Detalhes do erro:', error.response?.data);
                 }
             }
+        }
+
+        function agruparProdutos() {
+            // Agrupar produtos por Segmento + Produto + Marca + Qtd
+            const grupos = {};
+            
+            dadosTabelaCompleta.forEach(item => {
+                const chave = `${item.Segmento}|${item.Produto}|${item.Marca}|${item.Qtd}`;
+                
+                if (!grupos[chave]) {
+                    grupos[chave] = {
+                        Segmento: item.Segmento,
+                        Produto: item.Produto,
+                        Marca: item.Marca,
+                        Qtd: item.Qtd,
+                        precos: []
+                    };
+                }
+                
+                // Converter preço para número para comparação
+                const precoNum = parseFloat(item['Menor Preço'].replace('R$', '').replace(',', '.').trim());
+                
+                grupos[chave].precos.push({
+                    mercado: item.Mercado,
+                    preco: item['Menor Preço'],
+                    precoNum: precoNum,
+                    link: item.Link
+                });
+            });
+            
+            // Converter para array e encontrar menor preço
+            dadosAgrupados = Object.values(grupos).map(grupo => {
+                // Ordenar preços para encontrar o menor
+                grupo.precos.sort((a, b) => a.precoNum - b.precoNum);
+                grupo.menorPreco = grupo.precos[0];
+                return grupo;
+            });
+        }
+
+        function criarAbasMercados() {
+            const containerAbas = document.getElementById('abas-mercados');
+            const botaoTodos = containerAbas.querySelector('#aba-todos');
+            
+            // Limpar abas existentes (exceto "Todos")
+            const abasExistentes = containerAbas.querySelectorAll('button:not(#aba-todos)');
+            abasExistentes.forEach(aba => aba.remove());
+            
+            // Criar aba para cada mercado
+            mercadosDisponiveis.forEach(mercado => {
+                const botao = document.createElement('button');
+                botao.className = 'px-4 py-2 font-semibold text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600';
+                botao.textContent = mercado;
+                botao.onclick = () => mostrarMercado(mercado);
+                botao.id = `aba-${mercado.replace(/\s+/g, '-')}`;
+                containerAbas.appendChild(botao);
+            });
+            
+            containerAbas.style.display = 'block';
+        }
+
+        function mostrarTodosMercados() {
+            mercadoAtivo = 'todos';
+            
+            // Atualizar estilo das abas
+            document.querySelectorAll('#abas-mercados button').forEach(btn => {
+                btn.classList.remove('text-blue-600', 'border-blue-600');
+                btn.classList.add('text-gray-600', 'border-transparent');
+            });
+            document.getElementById('aba-todos').classList.add('text-blue-600', 'border-blue-600');
+            document.getElementById('aba-todos').classList.remove('text-gray-600', 'border-transparent');
+            
+            aplicarFiltros();
+        }
+
+        function mostrarMercado(mercado) {
+            mercadoAtivo = mercado;
+            
+            // Atualizar estilo das abas
+            document.querySelectorAll('#abas-mercados button').forEach(btn => {
+                btn.classList.remove('text-blue-600', 'border-blue-600');
+                btn.classList.add('text-gray-600', 'border-transparent');
+            });
+            const abaAtiva = document.getElementById(`aba-${mercado.replace(/\s+/g, '-')}`);
+            if (abaAtiva) {
+                abaAtiva.classList.add('text-blue-600', 'border-blue-600');
+                abaAtiva.classList.remove('text-gray-600', 'border-transparent');
+            }
+            
+            aplicarFiltros();
         }
 
         function preencherFiltros() {
@@ -460,7 +576,7 @@
         }
 
         function aplicarFiltros() {
-            if (dadosTabelaCompleta.length === 0) {
+            if (dadosAgrupados.length === 0) {
                 return; // Não aplicar filtros se não houver dados
             }
 
@@ -468,25 +584,30 @@
             const filtroProduto = document.getElementById('filtro-produto').value.toLowerCase();
             const filtroMarca = document.getElementById('filtro-marca').value.toLowerCase();
             const filtroQuantidade = document.getElementById('filtro-quantidade').value.toLowerCase();
-            const filtroMercado = document.getElementById('filtro-mercado').value.toLowerCase();
 
-            dadosTabelaFiltrados = dadosTabelaCompleta.filter(item => {
-                const matchSegmento = !filtroSegmento || (item.Segmento && item.Segmento.toLowerCase().includes(filtroSegmento));
-                const matchProduto = !filtroProduto || (item.Produto && item.Produto.toLowerCase().includes(filtroProduto));
-                const matchMarca = !filtroMarca || (item.Marca && item.Marca.toLowerCase().includes(filtroMarca));
-                const matchQuantidade = !filtroQuantidade || (item.Qtd && item.Qtd.toLowerCase().includes(filtroQuantidade));
-                const matchMercado = !filtroMercado || (item.Mercado && item.Mercado.toLowerCase().includes(filtroMercado));
+            // Filtrar grupos de produtos
+            let gruposFiltrados = dadosAgrupados.filter(grupo => {
+                const matchSegmento = !filtroSegmento || (grupo.Segmento && grupo.Segmento.toLowerCase().includes(filtroSegmento));
+                const matchProduto = !filtroProduto || (grupo.Produto && grupo.Produto.toLowerCase().includes(filtroProduto));
+                const matchMarca = !filtroMarca || (grupo.Marca && grupo.Marca.toLowerCase().includes(filtroMarca));
+                const matchQuantidade = !filtroQuantidade || (grupo.Qtd && grupo.Qtd.toLowerCase().includes(filtroQuantidade));
+                
+                // Se mercado ativo não for "todos", filtrar também por mercado
+                const matchMercado = mercadoAtivo === 'todos' || grupo.precos.some(p => p.mercado.toLowerCase() === mercadoAtivo.toLowerCase());
                 
                 return matchSegmento && matchProduto && matchMarca && matchQuantidade && matchMercado;
             });
 
+            // Atualizar dados filtrados
+            dadosTabelaFiltrados = gruposFiltrados;
+
             // Aplicar ordenação se houver
             if (ordenacaoAtual.coluna) {
-                ordenarDados(ordenacaoAtual.coluna, ordenacaoAtual.direcao);
+                ordenarGrupos(ordenacaoAtual.coluna, ordenacaoAtual.direcao);
             }
 
             exibirTabelaComparativa();
-            document.getElementById('total-tabela-filtrado').textContent = dadosTabelaFiltrados.length;
+            document.getElementById('total-tabela-filtrado').textContent = gruposFiltrados.length;
         }
 
         function ordenarTabela(coluna) {
@@ -497,20 +618,21 @@
                 ordenacaoAtual.direcao = 'asc';
             }
             
-            ordenarDados(coluna, ordenacaoAtual.direcao);
+            ordenarGrupos(coluna, ordenacaoAtual.direcao);
             exibirTabelaComparativa();
             lucide.createIcons();
         }
 
-        function ordenarDados(coluna, direcao) {
+        function ordenarGrupos(coluna, direcao) {
             dadosTabelaFiltrados.sort((a, b) => {
-                let valorA = a[coluna];
-                let valorB = b[coluna];
+                let valorA, valorB;
                 
-                // Converter preço para número se necessário
                 if (coluna === 'Menor Preço') {
-                    valorA = parseFloat(valorA.replace('R$', '').replace(',', '.').trim());
-                    valorB = parseFloat(valorB.replace('R$', '').replace(',', '.').trim());
+                    valorA = a.menorPreco.precoNum;
+                    valorB = b.menorPreco.precoNum;
+                } else {
+                    valorA = a[coluna];
+                    valorB = b[coluna];
                 }
                 
                 if (direcao === 'asc') {
@@ -521,30 +643,103 @@
             });
         }
 
+        function atualizarHeaderPrecos() {
+            const headerPrecos = document.getElementById('coluna-precos-header');
+            const subHeaderMercados = document.getElementById('sub-header-mercados');
+            
+            if (mercadoAtivo === 'todos') {
+                // Criar uma coluna para cada mercado
+                headerPrecos.colSpan = mercadosDisponiveis.length;
+                headerPrecos.className = 'px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider';
+                headerPrecos.innerHTML = 'Comparação de Preços';
+                
+                // Criar sub-headers para cada mercado
+                subHeaderMercados.innerHTML = mercadosDisponiveis.map(mercado => 
+                    `<th class="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider">${mercado}</th>`
+                ).join('');
+                subHeaderMercados.style.display = '';
+            } else {
+                // Uma única coluna de preço
+                headerPrecos.colSpan = 1;
+                headerPrecos.className = 'px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider';
+                headerPrecos.innerHTML = `Preço - ${mercadoAtivo}`;
+                subHeaderMercados.innerHTML = '';
+                subHeaderMercados.style.display = 'none';
+            }
+        }
+
         function exibirTabelaComparativa() {
             const tabelaBody = document.getElementById('tabela-body');
             
             if (dadosTabelaFiltrados.length === 0) {
-                tabelaBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Nenhum resultado encontrado com os filtros aplicados</td></tr>';
+                const colspan = mercadoAtivo === 'todos' ? 4 + mercadosDisponiveis.length + 1 : 6;
+                tabelaBody.innerHTML = `<tr><td colspan="${colspan}" class="px-4 py-8 text-center text-gray-500">Nenhum resultado encontrado com os filtros aplicados</td></tr>`;
+                atualizarHeaderPrecos();
                 return;
             }
 
-            tabelaBody.innerHTML = dadosTabelaFiltrados.map(item => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${item.Segmento}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${item.Produto}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${item.Marca}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${item.Qtd}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-green-600">${item['Menor Preço']}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${item.Mercado}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm">
-                        ${item.Link && item.Link !== 'N/A' && item.Link !== '' 
-                            ? `<a href="${item.Link}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">Link</a>`
-                            : '<span class="text-gray-400">-</span>'
+            // Atualizar header
+            atualizarHeaderPrecos();
+
+            tabelaBody.innerHTML = dadosTabelaFiltrados.map(grupo => {
+                // Se mercado ativo não for "todos", mostrar apenas produtos desse mercado
+                let precosParaExibir = mercadoAtivo === 'todos' ? grupo.precos : grupo.precos.filter(p => p.mercado.toLowerCase() === mercadoAtivo.toLowerCase());
+                
+                if (precosParaExibir.length === 0) return '';
+                
+                // Encontrar menor preço entre os preços a exibir
+                const menorPrecoExibido = precosParaExibir.reduce((min, p) => p.precoNum < min.precoNum ? p : min, precosParaExibir[0]);
+                
+                // Criar células de preços para cada mercado
+                let celulasPrecos = '';
+                if (mercadoAtivo === 'todos') {
+                    // Mostrar preços de todos os mercados lado a lado
+                    celulasPrecos = mercadosDisponiveis.map(mercado => {
+                        const precoMercado = grupo.precos.find(p => p.mercado === mercado);
+                        if (!precoMercado) {
+                            return '<td class="px-2 py-3 text-center text-sm text-gray-400 bg-gray-50">-</td>';
                         }
-                    </td>
-                </tr>
-            `).join('');
+                        
+                        const isMenorPreco = precoMercado.precoNum === menorPrecoExibido.precoNum;
+                        const bgColor = isMenorPreco ? 'bg-green-100' : 'bg-white';
+                        const textColor = isMenorPreco ? 'text-green-700 font-bold' : 'text-gray-700';
+                        
+                        return `<td class="px-2 py-3 text-center text-sm ${bgColor} ${textColor}">
+                            <div class="font-semibold">${precoMercado.preco}</div>
+                        </td>`;
+                    }).join('');
+                } else {
+                    // Mostrar apenas o preço do mercado ativo
+                    const preco = precosParaExibir[0];
+                    const isMenorPreco = preco.precoNum === menorPrecoExibido.precoNum;
+                    const bgColor = isMenorPreco ? 'bg-green-100' : 'bg-white';
+                    const textColor = isMenorPreco ? 'text-green-700 font-bold' : 'text-gray-700';
+                    celulasPrecos = `<td class="px-4 py-3 text-center text-sm ${bgColor} ${textColor} font-semibold">
+                        ${preco.preco}
+                    </td>`;
+                }
+                
+                // Link apenas do menor preço global (menor entre todos os mercados)
+                const linkMenorPreco = grupo.menorPreco.link && grupo.menorPreco.link !== 'N/A' && grupo.menorPreco.link !== ''
+                    ? `<a href="${grupo.menorPreco.link}" target="_blank" class="text-blue-600 hover:text-blue-800 underline font-semibold">Link</a>`
+                    : '<span class="text-gray-400">-</span>';
+                
+                // Destacar linha se o menor preço exibido for o menor global
+                const linhaDestaque = menorPrecoExibido.precoNum === grupo.menorPreco.precoNum ? 'bg-green-50' : '';
+                
+                return `
+                    <tr class="hover:bg-gray-50 ${linhaDestaque}">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${grupo.Segmento}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${grupo.Produto}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${grupo.Marca}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${grupo.Qtd}</td>
+                        ${celulasPrecos}
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            ${linkMenorPreco}
+                        </td>
+                    </tr>
+                `;
+            }).filter(html => html !== '').join('');
 
             lucide.createIcons();
         }
@@ -555,18 +750,38 @@
                 return;
             }
 
-            const headers = ['Segmento', 'Produto', 'Marca', 'Qtd', 'Menor Preço', 'Mercado', 'Link'];
+            // Criar headers com colunas de preços para cada mercado
+            let headers = ['Segmento', 'Produto', 'Marca', 'Qtd'];
+            if (mercadoAtivo === 'todos') {
+                headers = headers.concat(mercadosDisponiveis.map(m => `Preço ${m}`));
+            } else {
+                headers.push(`Preço ${mercadoAtivo}`);
+            }
+            headers.push('Link (Menor Preço)');
+
             const csvContent = [
                 headers.join(','),
-                ...dadosTabelaFiltrados.map(item => [
-                    `"${item.Segmento}"`,
-                    `"${item.Produto}"`,
-                    `"${item.Marca}"`,
-                    `"${item.Qtd}"`,
-                    `"${item['Menor Preço']}"`,
-                    `"${item.Mercado}"`,
-                    `"${item.Link || ''}"`
-                ].join(','))
+                ...dadosTabelaFiltrados.map(grupo => {
+                    let linha = [
+                        `"${grupo.Segmento}"`,
+                        `"${grupo.Produto}"`,
+                        `"${grupo.Marca}"`,
+                        `"${grupo.Qtd}"`
+                    ];
+                    
+                    if (mercadoAtivo === 'todos') {
+                        mercadosDisponiveis.forEach(mercado => {
+                            const precoMercado = grupo.precos.find(p => p.mercado === mercado);
+                            linha.push(`"${precoMercado ? precoMercado.preco : '-'}"`);
+                        });
+                    } else {
+                        const preco = grupo.precos.find(p => p.mercado.toLowerCase() === mercadoAtivo.toLowerCase());
+                        linha.push(`"${preco ? preco.preco : '-'}"`);
+                    }
+                    
+                    linha.push(`"${grupo.menorPreco.link || ''}"`);
+                    return linha.join(',');
+                })
             ].join('\n');
 
             const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });

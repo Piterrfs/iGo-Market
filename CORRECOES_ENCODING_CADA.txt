@@ -1,0 +1,87 @@
+CORREÇÕES APLICADAS NO SCRIPT DE SCRAPING
+==========================================
+
+Data: 12/01/2026
+
+PROBLEMAS IDENTIFICADOS E CORRIGIDOS:
+-------------------------------------
+
+1. PROBLEMA DE ENCODING DE CARACTERES
+   - Problema: Palavras com acentos apareciam incorretamente
+     Exemplos:
+     * "atÃ£o" em vez de "latão"
+     * "PÃ³" em vez de "Pó"
+     * "FÃ¡cil" em vez de "Fácil"
+     * "YpÃa" em vez de "Ypê"
+     * "Ãquido" em vez de "Líquido"
+     * "PiraquÃª" em vez de "Piraquê"
+   
+   - Solução Aplicada:
+     * Forçado encoding UTF-8 na leitura do HTML
+     * Adicionada correção automática de caracteres mal codificados
+     * Mapeamento de padrões comuns de encoding incorreto:
+       - Ã¡ → á
+       - Ã© → é
+       - Ã­ → í
+       - Ã³ → ó
+       - Ãº → ú
+       - Ã£ → ã
+       - Ã§ → ç
+       - Ã¢ → â
+       - Ãª → ê
+       - Ã´ → ô
+       - Ã  → à
+       - E maiúsculas correspondentes
+     * Adicionado tratamento de entidades HTML (&aacute;, &eacute;, etc.)
+
+2. REMOÇÃO DA PALAVRA "CADA"
+   - Problema: A palavra "cada" aparecia nos nomes dos produtos
+     Exemplos:
+     * "cada Amaciante"
+     * "cada Detergente Ypê"
+     * "cada Refresco em Pó Tang"
+   
+   - Solução Aplicada:
+     * Remoção de "cada" do início do nome
+     * Remoção de "cada" do final do nome
+     * Remoção de "cada" do meio do nome
+     * Remoção case-insensitive (funciona para "cada", "CADA", "Cada", etc.)
+     * Remoção também durante a limpeza final do nome (após remover marca e quantidade)
+
+LOCALIZAÇÃO DAS CORREÇÕES NO SCRIPT:
+------------------------------------
+
+Arquivo: GOOGLE_APPS_SCRIPT_SCRAPING_REAL.gs
+
+1. Função: extrairProdutosDaCategoria()
+   - Linha ~130: Correção de encoding UTF-8
+   - Linha ~131-145: Mapeamento de caracteres mal codificados
+   - Linha ~189-192: Remoção de "cada" do nome do produto
+   - Linha ~409 e ~428: Remoção adicional de "cada" durante limpeza final
+
+RESULTADO ESPERADO:
+-------------------
+
+Após as correções, os produtos devem aparecer corretamente:
+- "Amaciante" (sem "cada")
+- "Detergente Ypê" (sem "cada" e com acento correto)
+- "Refresco em Pó Tang" (sem "cada" e com acento correto)
+- "latão" (em vez de "atÃ£o")
+- "Fácil" (em vez de "FÃ¡cil")
+- "Líquido" (em vez de "Ãquido")
+
+NOTAS IMPORTANTES:
+------------------
+
+1. O script agora força o encoding UTF-8 ao ler o HTML
+2. Se ainda houver problemas de encoding, o script tenta corrigir automaticamente
+3. A palavra "cada" é removida em todas as posições (início, meio, final)
+4. As correções são aplicadas antes de salvar na planilha
+
+TESTE RECOMENDADO:
+------------------
+
+Execute o script e verifique:
+1. Se os acentos aparecem corretamente
+2. Se a palavra "cada" não aparece mais nos nomes dos produtos
+3. Se os nomes dos produtos estão limpos e formatados corretamente
