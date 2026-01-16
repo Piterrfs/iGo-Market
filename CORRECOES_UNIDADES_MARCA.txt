@@ -1,0 +1,73 @@
+CORREÇÕES APLICADAS NO SCRIPT - Extração de Unidades e Remoção de "Kg" da Marca
+==================================================================================
+
+PROBLEMAS IDENTIFICADOS:
+------------------------
+1. Itens com unidade "Kg" no web scraping estavam sendo salvos como "un"
+2. Unidade "Kg" aparecendo na coluna "Marca" em vez de ser removida
+3. Unidades não estavam sendo extraídas corretamente dos links quando apareciam sozinhas
+
+CORREÇÕES IMPLEMENTADAS:
+------------------------
+
+1. MELHORIA NA EXTRAÇÃO DE UNIDADES (Linhas ~178-195)
+   - Antes: Regex só capturava unidades com número (ex: "5Kg")
+   - Agora: Captura também unidades sozinhas no final do nome (ex: "Kg", "kg", "KG")
+   - Suporta todas as variações: Kg, kg, KG, g, G, L, l, ml, mL, ML, etc.
+   - Se não encontrar unidade, usa "un" como padrão
+
+2. REMOÇÃO DE UNIDADES DA MARCA (Linhas ~318-332)
+   - Adicionada limpeza automática da marca após detecção
+   - Remove unidades que possam ter sido capturadas junto com a marca
+   - Se a marca ficar vazia após limpeza, usa "Genérico"
+
+3. MELHORIA NA LISTA DE PALAVRAS COMUNS (Linhas ~300-315)
+   - Expandida lista para incluir todas variações de unidades (Kg, kg, KG, etc.)
+   - Evita que unidades sejam detectadas como marcas
+
+4. REMOÇÃO MELHORADA DE UNIDADES DO NOME DO PRODUTO (Linhas ~335-365)
+   - Remove unidades sozinhas no final do nome
+   - Remove unidades no meio do nome (com espaços antes e depois)
+   - Limpeza mais agressiva de todas variações de unidades
+   - Garante que "Kg" nunca apareça no nome do produto
+
+5. TRATAMENTO ESPECIAL PARA NOMES QUE FICAM MUITO CURTOS (Linhas ~367-382)
+   - Quando o nome fica muito curto após remover marca/unidade
+   - Recria o nome removendo unidades de forma mais cuidadosa
+   - Garante que unidades sejam sempre removidas
+
+EXEMPLOS DE CORREÇÕES:
+----------------------
+
+ANTES:
+- Nome: "Queijo Minas Barão Frescal Kg"
+- Marca: "Barão Frescal Kg"  ❌ (Kg na marca)
+- Qtd: "un"  ❌ (deveria ser "Kg")
+
+DEPOIS:
+- Nome: "Queijo Minas Barão Frescal Kg"
+- Marca: "Barão Frescal"  ✅ (Kg removido)
+- Qtd: "Kg"  ✅ (unidade extraída corretamente)
+
+ANTES:
+- Nome: "Coxa de Frango Levida Band Kg"
+- Marca: "Levida Band"
+- Qtd: "un"  ❌ (deveria ser "Kg")
+
+DEPOIS:
+- Nome: "Coxa de Frango Levida Band Kg"
+- Marca: "Levida Band"  ✅
+- Qtd: "Kg"  ✅ (unidade extraída corretamente)
+
+RESULTADO ESPERADO:
+-------------------
+- Todas as unidades (Kg, kg, KG, g, L, ml, etc.) são extraídas corretamente
+- Unidades nunca aparecem na coluna "Marca"
+- Unidades são sempre removidas do nome do produto
+- Quando a unidade está no link, é capturada mesmo se estiver sozinha
+
+OBSERVAÇÕES:
+------------
+- O script agora detecta unidades mesmo quando aparecem sozinhas no final do nome
+- A limpeza da marca remove automaticamente qualquer unidade que tenha sido capturada
+- A remoção de unidades do nome do produto é mais robusta e cobre todos os casos

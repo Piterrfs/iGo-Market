@@ -29,6 +29,8 @@ const FONTES_ENCARTES_OFERTAS = [
   {mercado: 'Guanabara', tipo: 'Encarte', url: 'https://www.supermercadosguanabara.com.br/encarte'},
   {mercado: 'Mundial', tipo: 'Ofertas', url: 'https://www.supermercadosmundial.com.br/ofertas'},
   {mercado: 'Mundial', tipo: 'Ofertas', url: 'https://www.supermercadosmundial.com.br/departamentos/categoria/ofertas?utm_source=chatgpt.com&page=1'},
+  {mercado: 'Mundial', tipo: 'Grãos e Cereais', url: 'https://www.supermercadosmundial.com.br/departamentos/categoria/ofertas?utm_source=chatgpt.com&page=1&productCategory=34'},
+  {mercado: 'Mundial', tipo: 'Frios, Salames, Embutidos e Queijos', url: 'https://www.supermercadosmundial.com.br/departamentos/categoria/ofertas?utm_source=chatgpt.com&page=1&productCategory=13&productCategory=14'},
   {mercado: 'Supermarket', tipo: 'Ofertas', url: 'https://redesupermarket.com.br/ofertas/'},
   {mercado: 'Prezunic', tipo: 'Ofertas', url: 'https://www.prezunic.com.br/ofertas'},
   {mercado: 'Prezunic', tipo: 'Encarte', url: 'https://blog.prezunic.com.br/encarte/'}
@@ -173,50 +175,266 @@ function extrairProdutosDaCategoria(url, categoriaNome, mercadoNome) {
         // Validar nome (não pode ser só números)
         if (/^[0-9,.\s]+$/.test(nome)) continue;
         
-        // Extrair quantidade
-        const qtdMatch = nome.match(/(\d+(?:[,.]\d+)?)\s*(kg|g|L|l|ml|un|pct|pac|und)/i);
-        const quantidade = qtdMatch ? qtdMatch[0] : 'un';
+        // Extrair quantidade - melhorado para capturar unidades sozinhas também
+        // Primeiro tenta padrão com número: "5Kg", "1kg", "500g", etc.
+        let qtdMatch = nome.match(/(\d+(?:[,.]\d+)?)\s*(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)/i);
+        let quantidade = qtdMatch ? qtdMatch[0] : '';
         
-        // Identificar marca (lista expandida)
+        // Se não encontrou com número, tenta unidades sozinhas no final: "Kg", "kg", "KG"
+        if (!qtdMatch) {
+          // Procurar unidades sozinhas no final do nome (com ou sem espaço antes)
+          const unidadesSozinhas = nome.match(/\s*(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)\s*$/i);
+          if (unidadesSozinhas) {
+            quantidade = unidadesSozinhas[1]; // Pegar apenas a unidade
+            qtdMatch = unidadesSozinhas; // Para usar na remoção depois
+          }
+        }
+        
+        // Se ainda não encontrou, usar 'un' como padrão
+        if (!quantidade) {
+          quantidade = 'un';
+        }
+        
+        // Identificar marca (lista expandida com marcas comuns)
         const nomeLower = nome.toLowerCase();
-        let marca = 'Genérico';
+        let marca = '';
+        let marcaEncontrada = '';
+        let marcaNomeFormatado = '';
         
+        // Dicionário expandido de marcas conhecidas
         const marcas = {
-          'tio joao': 'Tio João', 't. joao': 'Tio João', 'ouro nobre': 'Ouro Nobre',
-          'combrasil': 'Combrasil', 'rei do sul': 'Rei do Sul', 'maximo': 'Máximo',
-          'carreteiro': 'Carreteiro', 'globo': 'Globo', 'copa': 'Copa',
-          'kicaldo': 'Kicaldo', 'panela de barro': 'Panela de Barro',
-          'sanes': 'Sanes', 'yoki': 'Yoki', 'italac': 'Italac', 'omo': 'Omo',
-          'sadia': 'Sadia', 'coca cola': 'Coca-Cola', 'nestle': 'Nestlé',
-          'dona elza': 'Dona Elza', 'tio joão': 'Tio João'
+          // Alimentos básicos
+          'tio joao': 'Tio João', 't. joao': 'Tio João', 'tio joão': 'Tio João',
+          'ouro nobre': 'Ouro Nobre', 'combrasil': 'Combrasil', 'rei do sul': 'Rei do Sul',
+          'maximo': 'Máximo', 'carreteiro': 'Carreteiro', 'globo': 'Globo', 'copa': 'Copa',
+          'kicaldo': 'Kicaldo', 'panela de barro': 'Panela de Barro', 'sanes': 'Sanes',
+          'yoki': 'Yoki', 'italac': 'Italac', 'sadia': 'Sadia',
+          // Carnes e frios
+          'levida band': 'Levida Band', 'perdigão': 'Perdigão', 'vitória': 'Vitória',
+          'juliana': 'Juliana', 'monteminas': 'Monteminas', 'wilson': 'Wilson',
+          // Laticínios
+          'claybom': 'Claybom', 'qualy': 'Qualy',
+          // Limpeza
+          'vitral': 'Vitral', 'big soft': 'Big Soft', 'downy': 'Downy', 'ypê': 'Ypê',
+          'ype': 'Ypê', 'tixan': 'Tixan', 'tixan ype': 'Tixan Ypê', 'uau': 'Uau',
+          'minuano': 'Minuano', 'urca': 'Urca', 'sbp': 'SBP', 'neutral': 'Neutral',
+          'ruth coco': 'Ruth Coco', 'assolan': 'Assolan',
+          // Bebidas
+          'antarctica': 'Antarctica', 'bohemia': 'Bohemia', 'brahma': 'Brahma',
+          'budweiser': 'Budweiser', 'corona': 'Corona', 'original': 'Original',
+          'skol': 'Skol', 'spaten': 'Spaten', 'chandon': 'Chandon', 'beefeater': 'Beefeater',
+          'tanqueray': 'Tanqueray', 'pepsi': 'Pepsi', 'tang': 'Tang', 'johnnie walker': 'Johnnie Walker',
+          'guaravita': 'Guaravita', 'gatorade': 'Gatorade',
+          // Conservas
+          'gomes da costa': 'Gomes da Costa', 'gallo': 'Gallo', 'o-live': 'O-Live',
+          'pramesa': 'Pramesa', 'hellmanns': 'Hellmanns', 'pomarola': 'Pomarola',
+          'knorr': 'Knorr', 'kitano': 'Kitano', 'piracanjuba': 'Piracanjuba', 'moça': 'Moça',
+          // Biscoitos
+          'crac': 'Crac', 'piraquê': 'Piraquê',
+          // Matinais
+          'guarani': 'Guarani', 'união': 'União', 'quaker': 'Quaker', 'italakinho': 'Italakinho',
+          '3 corações': '3 Corações', 'melitta': 'Melitta', 'patusco': 'Patusco',
+          'glória': 'Glória', 'molico': 'Molico', 'ninho': 'Ninho', 'plus vita': 'Plus Vita',
+          'seven boys': 'Seven Boys',
+          // Bebês
+          'babysec': 'Babysec', 'huggies': 'Huggies', 'personal baby': 'Personal Baby',
+          'dove': 'Dove', 'dove baby': 'Dove Baby', 'hipoglos': 'Hipoglos', 'granado': 'Granado',
+          'sed': 'Seda', 'sed juntinhos': 'Seda Juntinhos',
+          // Outros
+          'omo': 'Omo', 'coca cola': 'Coca-Cola', 'nestle': 'Nestlé', 'dona elza': 'Dona Elza'
         };
         
-        for (const [marcaKey, marcaNome] of Object.entries(marcas)) {
+        // Buscar marca no dicionário (ordenar por tamanho para pegar marcas compostas primeiro)
+        const marcasOrdenadas = Object.entries(marcas).sort((a, b) => b[0].length - a[0].length);
+        for (const [marcaKey, marcaNome] of marcasOrdenadas) {
           if (nomeLower.includes(marcaKey)) {
             marca = marcaNome;
+            marcaEncontrada = marcaKey;
+            marcaNomeFormatado = marcaNome;
             break;
           }
         }
         
+        // Se não encontrou no dicionário, tentar detectar marca no final do nome
+        // (palavras em maiúsculas ou palavras que parecem marcas)
+        if (!marca) {
+          const palavras = nome.split(/\s+/);
+          // Verificar últimas 1-3 palavras como possível marca
+          for (let i = Math.min(3, palavras.length); i >= 1; i--) {
+            const possivelMarca = palavras.slice(-i).join(' ');
+            const possivelMarcaLower = possivelMarca.toLowerCase();
+            
+            // Se a palavra está toda em maiúsculas ou tem características de marca
+            if (possivelMarca === possivelMarca.toUpperCase() && possivelMarca.length >= 2) {
+              marca = possivelMarca;
+              marcaEncontrada = possivelMarcaLower;
+              marcaNomeFormatado = possivelMarca;
+              break;
+            }
+            
+            // Verificar se é uma palavra conhecida que pode ser marca
+            if (possivelMarca.length >= 2 && possivelMarca.length <= 20) {
+              // Remover quantidade se estiver na possível marca
+              const semQtd = possivelMarca.replace(/(\d+(?:[,.]\d+)?)\s*(kg|g|L|l|ml|un|pct|pac|und)/i, '').trim();
+              if (semQtd && semQtd.length >= 2) {
+                marca = semQtd;
+                marcaEncontrada = semQtd.toLowerCase();
+                marcaNomeFormatado = semQtd;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Se ainda não encontrou, tentar detectar marca por padrões comuns
+        if (!marca) {
+          const palavras = nome.split(/\s+/);
+          
+          // Padrão comum: "Produto Marca Quantidade" ou "Produto Marca"
+          // A marca geralmente está no final, antes da quantidade
+          let indiceQtd = -1;
+          if (qtdMatch) {
+            for (let i = 0; i < palavras.length; i++) {
+              if (palavras[i].toLowerCase().includes(qtdMatch[0].toLowerCase())) {
+                indiceQtd = i;
+                break;
+              }
+            }
+          }
+          
+          // Se encontrou quantidade, a marca pode estar antes dela
+          if (indiceQtd > 0) {
+            // Pegar última palavra antes da quantidade como possível marca
+            const possivelMarca = palavras[indiceQtd - 1];
+            if (possivelMarca && possivelMarca.length >= 2 && possivelMarca.length <= 25) {
+              marca = possivelMarca;
+              marcaEncontrada = possivelMarca.toLowerCase();
+              marcaNomeFormatado = possivelMarca;
+            }
+          }
+          
+          // Se ainda não encontrou, tentar últimas palavras (exceto quantidade)
+          if (!marca) {
+            for (let i = palavras.length - 1; i >= 0; i--) {
+              const palavra = palavras[i];
+              // Ignorar quantidade, palavras muito curtas e palavras comuns (incluindo todas variações de unidades)
+              const palavrasComuns = ['cada', 'kg', 'Kg', 'KG', 'g', 'G', 'l', 'L', 'ml', 'mL', 'ML', 
+                                      'un', 'Un', 'UN', 'pct', 'Pct', 'PCT', 'pac', 'Pac', 'PAC', 
+                                      'und', 'Und', 'UND', 'itro', 'itros', 'Itro', 'Itros'];
+              // Verificar se não é uma unidade ou quantidade
+              const isUnidade = palavrasComuns.includes(palavra) || 
+                                palavra.match(/^(\d+(?:[,.]\d+)?)\s*(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)$/i);
+              
+              if (!isUnidade && palavra.length >= 2 && palavra.length <= 25) {
+                marca = palavra;
+                marcaEncontrada = palavra.toLowerCase();
+                marcaNomeFormatado = palavra;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Se ainda não encontrou marca, usar "Genérico" como fallback
+        if (!marca) {
+          marca = 'Genérico';
+          marcaNomeFormatado = 'Genérico';
+        }
+        
+        // Limpar marca para remover unidades que possam ter sido capturadas
+        if (marca !== 'Genérico' && marcaNomeFormatado !== 'Genérico') {
+          // Remover unidades da marca (Kg, kg, KG, g, L, ml, etc.)
+          marcaNomeFormatado = marcaNomeFormatado.replace(/\s*(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)\s*$/i, '').trim();
+          marcaEncontrada = marcaNomeFormatado.toLowerCase();
+          marca = marcaNomeFormatado;
+          
+          // Se a marca ficou vazia após limpar, usar Genérico
+          if (!marcaNomeFormatado || marcaNomeFormatado.length < 2) {
+            marca = 'Genérico';
+            marcaNomeFormatado = 'Genérico';
+            marcaEncontrada = 'genérico';
+          }
+        }
+        
+        // Remover marca e quantidade do nome para obter apenas o produto
+        let nomeLimpo = nome;
+        
+        // Remover quantidade primeiro (para não interferir na remoção da marca)
+        if (qtdMatch && qtdMatch[0]) {
+          // Remover a quantidade encontrada (pode ser "5Kg" ou só "Kg")
+          nomeLimpo = nomeLimpo.replace(qtdMatch[0], '').trim();
+        }
+        
+        // Remover unidades sozinhas que possam ter sobrado (Kg, kg, KG, etc.)
+        nomeLimpo = nomeLimpo.replace(/\s+(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)\s*$/i, '').trim();
+        nomeLimpo = nomeLimpo.replace(/\s+(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)\s+/gi, ' ').trim();
+        
+        // Remover marca do nome (usar regex para remover a marca encontrada)
+        if (marcaEncontrada && marca !== 'Genérico' && marcaNomeFormatado !== 'Genérico') {
+          // Tentar remover a marca formatada primeiro (preserva maiúsculas)
+          if (marcaNomeFormatado) {
+            const regexMarcaFormatada = new RegExp('\\b' + marcaNomeFormatado.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
+            nomeLimpo = nomeLimpo.replace(regexMarcaFormatada, '').trim();
+          }
+          
+          // Se ainda contém a marca (case insensitive), remover
+          if (nomeLimpo.toLowerCase().includes(marcaEncontrada)) {
+            const regexMarca = new RegExp('\\b' + marcaEncontrada.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+            nomeLimpo = nomeLimpo.replace(regexMarca, '').trim();
+          }
+        }
+        
+        // Limpar espaços extras e palavras comuns que sobraram (incluindo todas variações de unidades)
+        nomeLimpo = nomeLimpo.replace(/\s+cada\s*/gi, ' ')
+                              .replace(/\s+itro\s*/gi, ' ')
+                              .replace(/\s+itros\s*/gi, ' ')
+                              .replace(/\s+(kg|Kg|KG)\s*/gi, ' ')
+                              .replace(/\s+(g|G)\s*/gi, ' ')
+                              .replace(/\s+(L|l)\s*/gi, ' ')
+                              .replace(/\s+(ml|mL|ML)\s*/gi, ' ')
+                              .replace(/\s+/g, ' ')
+                              .trim();
+        
+        // Se o nome ficou muito curto ou vazio após remover marca, usar nome original sem quantidade
+        if (!nomeLimpo || nomeLimpo.length < 3) {
+          nomeLimpo = nome;
+          if (qtdMatch && qtdMatch[0]) {
+            nomeLimpo = nomeLimpo.replace(qtdMatch[0], '').trim();
+          }
+          // Remover unidades sozinhas
+          nomeLimpo = nomeLimpo.replace(/\s+(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)\s*$/i, '').trim();
+          nomeLimpo = nomeLimpo.replace(/\s+(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)\s+/gi, ' ').trim();
+          nomeLimpo = nomeLimpo.replace(/\s+cada\s*/gi, ' ')
+                                .replace(/\s+itro\s*/gi, ' ')
+                                .replace(/\s+itros\s*/gi, ' ')
+                                .replace(/\s+(kg|Kg|KG)\s*/gi, ' ')
+                                .replace(/\s+(g|G)\s*/gi, ' ')
+                                .replace(/\s+(L|l)\s*/gi, ' ')
+                                .replace(/\s+(ml|mL|ML)\s*/gi, ' ')
+                                .replace(/\s+/g, ' ')
+                                .trim();
+        }
+        
         // Identificar produto base e segmento (usar categoria como segmento padrão)
-        let produto = nome;
+        let produto = nomeLimpo;
         let segmento = categoriaNome;
         
         // Tentar identificar produto genérico apenas para alguns casos conhecidos
-        if (nomeLower.includes('arroz')) {
+        const nomeLimpoLower = nomeLimpo.toLowerCase();
+        if (nomeLimpoLower.includes('arroz')) {
           produto = 'Arroz Branco';
-        } else if (nomeLower.includes('feijao') || nomeLower.includes('feijão')) {
+        } else if (nomeLimpoLower.includes('feijao') || nomeLimpoLower.includes('feijão')) {
           produto = 'Feijão Preto';
-        } else if (nomeLower.includes('farinha')) {
+        } else if (nomeLimpoLower.includes('farinha')) {
           produto = 'Farinha de Trigo';
-        } else if (nomeLower.includes('pipoca')) {
+        } else if (nomeLimpoLower.includes('pipoca')) {
           produto = 'Pipoca Microondas';
         }
         
-        // Se não identificou, usar o nome completo como produto
-        if (produto === nome && nome.length > 50) {
+        // Se não identificou produto genérico, usar o nome limpo (sem marca e quantidade)
+        if (produto === nomeLimpo && nomeLimpo.length > 50) {
           // Se o nome for muito longo, pegar primeiras palavras
-          const palavras = nome.split(' ');
+          const palavras = nomeLimpo.split(' ');
           produto = palavras.slice(0, 5).join(' ');
         }
         
@@ -227,7 +445,7 @@ function extrairProdutosDaCategoria(url, categoriaNome, mercadoNome) {
           produtosEncontrados.set(chave, {
             Segmento: segmento,
             Produto: produto,
-            Marca: marca,
+            Marca: marcaNomeFormatado || marca || 'Genérico',
             Qtd: quantidade,
             'Menor Preço': 'R$ ' + preco.toFixed(2).replace('.', ','),
             Mercado: mercadoNome || 'Guanabara',
