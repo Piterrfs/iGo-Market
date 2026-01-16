@@ -33,7 +33,16 @@ const FONTES_ENCARTES_OFERTAS = [
   {mercado: 'Mundial', tipo: 'Frios, Salames, Embutidos e Queijos', url: 'https://www.supermercadosmundial.com.br/departamentos/categoria/ofertas?utm_source=chatgpt.com&page=1&productCategory=13&productCategory=14'},
   {mercado: 'Supermarket', tipo: 'Ofertas', url: 'https://redesupermarket.com.br/ofertas/'},
   {mercado: 'Prezunic', tipo: 'Ofertas', url: 'https://www.prezunic.com.br/ofertas'},
-  {mercado: 'Prezunic', tipo: 'Encarte', url: 'https://blog.prezunic.com.br/encarte/'}
+  {mercado: 'Prezunic', tipo: 'Encarte', url: 'https://blog.prezunic.com.br/encarte/'},
+  // Carrefour
+  {mercado: 'Carrefour', tipo: 'Carne Bovina', url: 'https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=carnes-bovinas&count=60'},
+  {mercado: 'Carrefour', tipo: 'Aves', url: 'https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=aves'},
+  {mercado: 'Carrefour', tipo: 'Linguiça', url: 'https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=linguica'},
+  {mercado: 'Carrefour', tipo: 'Suína', url: 'https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=carne-suina'},
+  {mercado: 'Carrefour', tipo: 'Itens para Churrasco', url: 'https://mercado.carrefour.com.br/colecao/24391/score-desc/0?map=productClusterIds&c_category-2=hamburguer%7Ctemperos-e-condimentos%7Cpaes-e-torradas%7Cgelo%7Calimentos-basicos%7Cchurrasco'},
+  {mercado: 'Carrefour', tipo: 'Queijo', url: 'https://mercado.carrefour.com.br/busca/queijo?count=60'},
+  {mercado: 'Carrefour', tipo: 'Queijo', url: 'https://mercado.carrefour.com.br/busca/queijo?count=60&page=2'},
+  {mercado: 'Carrefour', tipo: 'Queijo', url: 'https://mercado.carrefour.com.br/busca/queijo?count=60&page=3'}
 ];
 
 // ✅ FUNÇÃO PRINCIPAL PARA FAZER SCRAPING E SALVAR
@@ -109,6 +118,44 @@ function fazerScrapingESalvar() {
   }
 }
 
+// ✅ FUNÇÃO PARA CORRIGIR ENCODING DE TEXTO
+function corrigirEncoding(texto) {
+  if (!texto) return texto;
+  
+  return texto
+    // Correções básicas de acentos
+    .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
+    .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ã£/g, 'ã')
+    .replace(/Ã§/g, 'ç').replace(/Ã¢/g, 'â').replace(/Ãª/g, 'ê')
+    .replace(/Ã´/g, 'ô').replace(/Ã /g, 'à').replace(/Ã‰/g, 'É')
+    .replace(/Ã"/g, 'Á').replace(/Ã'/g, 'Í').replace(/Ã"/g, 'Ó')
+    .replace(/Ãš/g, 'Ú').replace(/Ãƒ/g, 'Ã').replace(/Ã‡/g, 'Ç')
+    .replace(/Ã‚/g, 'Â').replace(/ÃŠ/g, 'Ê').replace(/Ã"/g, 'Ô')
+    .replace(/Ã€/g, 'À').replace(/Ã¼/g, 'ü').replace(/Ãœ/g, 'Ü')
+    .replace(/Ã±/g, 'ñ').replace(/Ã'/g, 'Ñ')
+    // Correções específicas mencionadas pelo usuário
+    .replace(/Ã/g, 'Á').replace(/Ã¡gua/gi, 'Água')
+    .replace(/SanitÃ¡ria/gi, 'Sanitária').replace(/sanitÃ¡ria/gi, 'Sanitária')
+    .replace(/LaticÃ­nios/gi, 'Laticínios').replace(/laticÃ­nios/gi, 'Laticínios')
+    .replace(/FilÃ©/gi, 'Filé').replace(/filÃ©/gi, 'Filé')
+    .replace(/atÃ£o/gi, 'Latão').replace(/latÃ£o/gi, 'Latão')
+    .replace(/AÃ§ougue/gi, 'Açougue').replace(/aÃ§ougue/gi, 'Açougue')
+    .replace(/YpÃª/gi, 'Ypê').replace(/IpÃª/gi, 'Ipê').replace(/ypÃª/gi, 'Ypê')
+    .replace(/SABÃ/g, 'Sabão').replace(/SABÃO/gi, 'Sabão').replace(/sabÃ£o/gi, 'Sabão')
+    .replace(/TÃ´nica/gi, 'Tônica').replace(/tÃ´nica/gi, 'Tônica')
+    .replace(/PiraquÃª/gi, 'Piraquê').replace(/piraquÃª/gi, 'Piraquê')
+    .replace(/Ã­quido/gi, 'Líquido').replace(/lÃ­quido/gi, 'Líquido')
+    .replace(/BebÃª/gi, 'Bebê').replace(/bebÃª/gi, 'Bebê')
+    .replace(/AÃ§Ãºcar/gi, 'Açúcar').replace(/aÃ§Ãºcar/gi, 'Açúcar')
+    .replace(/Ã¡ctea/gi, 'Láctea').replace(/lÃ¡ctea/gi, 'Láctea')
+    .replace(/CafÃ©/gi, 'Café').replace(/cafÃ©/gi, 'Café')
+    .replace(/CoraÃ§Ãµes/gi, 'Corações').replace(/coraÃ§Ãµes/gi, 'Corações')
+    .replace(/UniÃ£o/gi, 'União').replace(/uniÃ£o/gi, 'União')
+    .replace(/FeijÃ£o/gi, 'Feijão').replace(/feijÃ£o/gi, 'Feijão')
+    .replace(/FarinÃ¡ceos/gi, 'Farináceos').replace(/farinÃ¡ceos/gi, 'Farináceos')
+    .replace(/FÃ¡cil/gi, 'Fácil').replace(/fÃ¡cil/gi, 'Fácil');
+}
+
 // ✅ FUNÇÃO PARA EXTRAIR PRODUTOS DE UMA CATEGORIA
 function extrairProdutosDaCategoria(url, categoriaNome, mercadoNome) {
   const produtos = [];
@@ -127,7 +174,41 @@ function extrairProdutosDaCategoria(url, categoriaNome, mercadoNome) {
       return produtos;
     }
     
-    const html = response.getContentText();
+    // ✅ CORRIGIR ENCODING - Garantir UTF-8
+    let html = response.getContentText('UTF-8');
+    
+    // Se ainda houver problemas de encoding, tentar corrigir caracteres mal codificados
+    // Corrigir padrões comuns de encoding incorreto (ISO-8859-1 interpretado como UTF-8)
+    html = html.replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
+                .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ã£/g, 'ã')
+                .replace(/Ã§/g, 'ç').replace(/Ã¢/g, 'â').replace(/Ãª/g, 'ê')
+                .replace(/Ã´/g, 'ô').replace(/Ã /g, 'à').replace(/Ã‰/g, 'É')
+                .replace(/Ã"/g, 'Á').replace(/Ã'/g, 'Í').replace(/Ã"/g, 'Ó')
+                .replace(/Ãš/g, 'Ú').replace(/Ãƒ/g, 'Ã').replace(/Ã‡/g, 'Ç')
+                .replace(/Ã‚/g, 'Â').replace(/ÃŠ/g, 'Ê').replace(/Ã"/g, 'Ô')
+                .replace(/Ã€/g, 'À').replace(/Ã¼/g, 'ü').replace(/Ãœ/g, 'Ü')
+                .replace(/Ã±/g, 'ñ').replace(/Ã'/g, 'Ñ')
+                // Correções adicionais específicas
+                .replace(/Ã/g, 'Á').replace(/Ã¡gua/gi, 'Água')
+                .replace(/LaticÃ­nios/gi, 'Laticínios').replace(/LaticÃ­nios/gi, 'Laticínios')
+                .replace(/FilÃ©/gi, 'Filé').replace(/FilÃ©/gi, 'Filé')
+                .replace(/atÃ£o/gi, 'Latão').replace(/latÃ£o/gi, 'Latão')
+                .replace(/AÃ§ougue/gi, 'Açougue').replace(/aÃ§ougue/gi, 'Açougue')
+                .replace(/YpÃª/gi, 'Ypê').replace(/IpÃª/gi, 'Ipê')
+                .replace(/SABÃ/g, 'Sabão').replace(/SABÃO/gi, 'Sabão').replace(/sabÃ£o/gi, 'Sabão')
+                .replace(/TÃ´nica/gi, 'Tônica').replace(/tÃ´nica/gi, 'Tônica')
+                .replace(/PiraquÃª/gi, 'Piraquê').replace(/piraquÃª/gi, 'Piraquê')
+                .replace(/Ã­quido/gi, 'Líquido').replace(/Ã­quido/gi, 'Líquido')
+                .replace(/BebÃª/gi, 'Bebê').replace(/bebÃª/gi, 'Bebê')
+                .replace(/AÃ§Ãºcar/gi, 'Açúcar').replace(/aÃ§Ãºcar/gi, 'Açúcar')
+                .replace(/Ã¡ctea/gi, 'Láctea').replace(/lÃ¡ctea/gi, 'Láctea')
+                .replace(/CafÃ©/gi, 'Café').replace(/cafÃ©/gi, 'Café')
+                .replace(/CoraÃ§Ãµes/gi, 'Corações').replace(/coraÃ§Ãµes/gi, 'Corações')
+                .replace(/UniÃ£o/gi, 'União').replace(/uniÃ£o/gi, 'União')
+                .replace(/FeijÃ£o/gi, 'Feijão').replace(/feijÃ£o/gi, 'Feijão')
+                .replace(/FarinÃ¡ceos/gi, 'Farináceos').replace(/farinÃ¡ceos/gi, 'Farináceos')
+                .replace(/FÃ¡cil/gi, 'Fácil').replace(/fÃ¡cil/gi, 'Fácil')
+                .replace(/SanitÃ¡ria/gi, 'Sanitária').replace(/sanitÃ¡ria/gi, 'Sanitária');
     
     if (!html || html.length < 100) {
       console.log('  HTML muito curto para ' + mercadoNome + ' - ' + categoriaNome);
@@ -147,12 +228,22 @@ function extrairProdutosDaCategoria(url, categoriaNome, mercadoNome) {
                            .replace(/&lt;/g, '<')
                            .replace(/&gt;/g, '>')
                            .replace(/&quot;/g, '"')
+                           .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é')
+                           .replace(/&iacute;/g, 'í').replace(/&oacute;/g, 'ó')
+                           .replace(/&uacute;/g, 'ú').replace(/&atilde;/g, 'ã')
+                           .replace(/&ccedil;/g, 'ç').replace(/&acirc;/g, 'â')
+                           .replace(/&ecirc;/g, 'ê').replace(/&ocirc;/g, 'ô')
+                           .replace(/&agrave;/g, 'à').replace(/&uuml;/g, 'ü')
                            .replace(/\s+/g, ' ')
                            .trim();
     
     // Padrão melhorado: número seguido de vírgula/ponto e 2 dígitos, seguido de texto (nome do produto)
     // Aceita mais variações e é mais flexível para capturar todos os produtos
-    const padrao = /(\d+[,.]\d{2})\s+([A-Za-zÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç0-9][A-Za-zÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç0-9\s\.\-]{3,100}?)(?=\s*\d+[,.]\d{2}|\s*cada|\s*Validade|$)/gi;
+    // Captura preços com ou sem "R$", com ou sem "/kg", "por", etc.
+    const padrao = /(?:R\$\s*)?(\d+[,.]\d{2})(?:\s*\/?\s*(?:kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND))?\s+(?:por\s+)?([A-Za-zÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç0-9][A-Za-zÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç0-9\s\.\-]{3,100}?)(?=\s*(?:R\$\s*)?\d+[,.]\d{2}|\s*cada|\s*Validade|\s*por\s+R\$|\s*\/?\s*(?:kg|Kg|KG)\s*$|$)/gi;
+    
+    // Padrão alternativo: captura produtos no formato "Nome ... R$XX,XX/kg" ou "Nome ... por R$XX,XX kg"
+    const padraoAlternativo = /([A-Za-zÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç][A-Za-zÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç0-9\s\.\-]{3,50}?)\s+(?:Peça|Pedaço|Pacote|Unidade|Un|Pct|Pac|Und)?\s*(?:ou\s+)?(?:R\$\s*)?(\d+[,.]\d{2})(?:\s*\/?\s*(?:kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND))?\s*(?:por|kg|Kg|KG)?/gi;
     
     let match;
     const produtosEncontrados = new Map();
@@ -167,8 +258,13 @@ function extrairProdutosDaCategoria(url, categoriaNome, mercadoNome) {
         let nome = match[2].trim();
         nome = nome.replace(/\s+/g, ' ').trim();
         
-        // Remover "cada" do final
-        nome = nome.replace(/\s+cada\s*$/i, '').trim();
+        // ✅ Aplicar correção de encoding no nome extraído
+        nome = corrigirEncoding(nome);
+        
+        // ✅ Remover "cada" do início e do final (case insensitive)
+        nome = nome.replace(/^cada\s+/i, '').trim(); // Remove do início
+        nome = nome.replace(/\s+cada\s*$/i, '').trim(); // Remove do final
+        nome = nome.replace(/\s+cada\s+/gi, ' ').trim(); // Remove do meio também
         
         if (!nome || nome.length < 3 || nome.length > 200) continue;
         
@@ -417,7 +513,7 @@ function extrairProdutosDaCategoria(url, categoriaNome, mercadoNome) {
         
         // Identificar produto base e segmento (usar categoria como segmento padrão)
         let produto = nomeLimpo;
-        let segmento = categoriaNome;
+        let segmento = corrigirEncoding(categoriaNome);
         
         // Tentar identificar produto genérico apenas para alguns casos conhecidos
         const nomeLimpoLower = nomeLimpo.toLowerCase();
@@ -442,18 +538,84 @@ function extrairProdutosDaCategoria(url, categoriaNome, mercadoNome) {
         const chave = (nome.toLowerCase() + '_' + preco + '_' + quantidade).replace(/\s+/g, '_');
         
         if (!produtosEncontrados.has(chave)) {
+          // ✅ Aplicar correção de encoding antes de salvar
           produtosEncontrados.set(chave, {
-            Segmento: segmento,
-            Produto: produto,
-            Marca: marcaNomeFormatado || marca || 'Genérico',
+            Segmento: corrigirEncoding(segmento),
+            Produto: corrigirEncoding(produto),
+            Marca: corrigirEncoding(marcaNomeFormatado || marca || 'Genérico'),
             Qtd: quantidade,
             'Menor Preço': 'R$ ' + preco.toFixed(2).replace('.', ','),
-            Mercado: mercadoNome || 'Guanabara',
+            Mercado: corrigirEncoding(mercadoNome || 'Guanabara'),
             Link: url
           });
         }
       } catch (e) {
         // Continuar mesmo se houver erro em um produto
+        continue;
+      }
+    }
+    
+    // ✅ TENTAR PADRÃO ALTERNATIVO: "Nome ... R$XX,XX/kg" ou "Nome ... por R$XX,XX kg"
+    // Útil para produtos como "Queijo Prato ... R$28,80/kg"
+    let matchAlt;
+    while ((matchAlt = padraoAlternativo.exec(textoLimpo)) !== null) {
+      try {
+        let nomeAlt = matchAlt[1].trim();
+        const precoStrAlt = matchAlt[2].replace(',', '.');
+        const precoAlt = parseFloat(precoStrAlt);
+        
+        if (precoAlt < 0.01 || precoAlt > 10000) continue;
+        
+        // ✅ Aplicar correção de encoding no nome extraído
+        nomeAlt = corrigirEncoding(nomeAlt);
+        
+        // Remover "cada" do nome
+        nomeAlt = nomeAlt.replace(/^cada\s+/i, '').trim();
+        nomeAlt = nomeAlt.replace(/\s+cada\s*$/i, '').trim();
+        nomeAlt = nomeAlt.replace(/\s+cada\s+/gi, ' ').trim();
+        
+        if (!nomeAlt || nomeAlt.length < 3 || nomeAlt.length > 200) continue;
+        if (/^[0-9,.\s]+$/.test(nomeAlt)) continue;
+        
+        // Extrair quantidade
+        const qtdMatchAlt = nomeAlt.match(/(\d+(?:[,.]\d+)?)\s*(kg|Kg|KG|g|G|L|l|ml|mL|ML|un|Un|UN|pct|Pct|PCT|pac|Pac|PAC|und|Und|UND)/i);
+        const quantidadeAlt = qtdMatchAlt ? qtdMatchAlt[0] : 'kg'; // Default kg para produtos por peso
+        
+        // Criar chave única
+        const chaveAlt = (nomeAlt.toLowerCase() + '_' + precoAlt + '_' + quantidadeAlt).replace(/\s+/g, '_');
+        
+        // Só adicionar se não foi encontrado pelo padrão principal
+        if (!produtosEncontrados.has(chaveAlt)) {
+          // Identificar marca (simplificado)
+          const nomeAltLower = nomeAlt.toLowerCase();
+          let marcaAlt = 'Genérico';
+          
+          // Verificar marcas conhecidas (lista reduzida para performance)
+          const marcasRapidas = {
+            'tio joao': 'Tio João', 'ouro nobre': 'Ouro Nobre', 'sadia': 'Sadia',
+            'ypê': 'Ypê', 'ype': 'Ypê', 'omo': 'Omo', 'coca cola': 'Coca-Cola'
+          };
+          
+          for (const [marcaKey, marcaNome] of Object.entries(marcasRapidas)) {
+            if (nomeAltLower.includes(marcaKey)) {
+              marcaAlt = marcaNome;
+              break;
+            }
+          }
+          
+          // ✅ Aplicar correção de encoding antes de salvar
+          produtosEncontrados.set(chaveAlt, {
+            Segmento: corrigirEncoding(categoriaNome),
+            Produto: corrigirEncoding(nomeAlt.length > 50 ? nomeAlt.split(' ').slice(0, 5).join(' ') : nomeAlt),
+            Marca: corrigirEncoding(marcaAlt),
+            Qtd: quantidadeAlt,
+            'Menor Preço': 'R$ ' + precoAlt.toFixed(2).replace('.', ','),
+            Mercado: corrigirEncoding(mercadoNome || 'Guanabara'),
+            Link: url
+          });
+        }
+      } catch (e) {
+        // Continuar mesmo se houver erro
         continue;
       }
     }
@@ -483,13 +645,14 @@ function escreverDadosNaPlanilha(aba, dados, colunas) {
     const linhas = [];
     for (let i = 0; i < dados.length; i++) {
       const item = dados[i];
+      // ✅ Aplicar correção de encoding antes de escrever na planilha
       const linha = [
-        item.Segmento || '',
-        item.Produto || '',
-        item.Marca || '',
+        corrigirEncoding(item.Segmento || ''),
+        corrigirEncoding(item.Produto || ''),
+        corrigirEncoding(item.Marca || ''),
         item.Qtd || '',
         item['Menor Preço'] || '',
-        item.Mercado || '',
+        corrigirEncoding(item.Mercado || ''),
         item.Link || ''
       ];
       linhas.push(linha);

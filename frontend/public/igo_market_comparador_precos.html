@@ -15,10 +15,28 @@
             border-collapse: collapse;
             width: 100%;
         }
-        #tabela-comparativa th {
+        #filtros-container {
             position: sticky;
             top: 0;
-            z-index: 10;
+            background: white;
+            z-index: 30;
+            padding: 1rem 0;
+            margin-bottom: 0;
+            border-bottom: 2px solid #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .tabela-wrapper {
+            max-height: calc(100vh - 350px);
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+        #tabela-comparativa thead {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        #tabela-comparativa th {
+            background: #2563eb;
         }
         #tabela-comparativa tbody tr:hover {
             background-color: #f9fafb;
@@ -48,29 +66,6 @@
             </div>
         </header>
 
-        <!-- Estatísticas -->
-        <div id="estatisticas" class="container mx-auto px-4 mt-4">
-            <div class="bg-white rounded-lg shadow p-4 mb-4">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div>
-                        <p class="text-gray-600 text-xs">Produtos</p>
-                        <p id="total-produtos" class="text-2xl font-bold text-blue-600">0</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-600 text-xs">Mercados</p>
-                        <p id="total-mercados" class="text-2xl font-bold text-blue-600">0</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-600 text-xs">Preço Médio</p>
-                        <p id="preco-medio" class="text-2xl font-bold text-blue-600">R$ 0,00</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-600 text-xs">Última Atualização</p>
-                        <p id="data-atualizacao" class="text-sm font-semibold text-gray-700">N/A</p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Busca -->
         <div class="container mx-auto px-4 mt-4">
@@ -93,25 +88,6 @@
                     >
                         <i data-lucide="search" class="w-5 h-5"></i>
                         Buscar
-                    </button>
-                </div>
-
-                <!-- Ações -->
-                <div class="flex flex-wrap gap-2 mt-4">
-                    <button
-                        onclick="executarScraping()"
-                        id="btn-atualizar"
-                        class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
-                    >
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        <span id="texto-atualizar">Atualizar Dados</span>
-                    </button>
-                    <button
-                        onclick="baixarPlanilha()"
-                        class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700 flex items-center gap-2"
-                    >
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        Baixar Planilha
                     </button>
                 </div>
             </div>
@@ -142,12 +118,11 @@
                         📊 Tabela Comparativa de Preços
                     </h2>
                     <button
-                        onclick="carregarTabelaComparativa()"
-                        id="btn-carregar-tabela"
-                        class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                        onclick="exportarTabelaCSV()"
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center gap-2"
                     >
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        Carregar Tabela
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        Exportar CSV
                     </button>
                 </div>
 
@@ -190,21 +165,14 @@
                 </div>
 
                 <!-- Info da tabela -->
-                <div class="mb-4 flex items-center justify-between">
+                <div class="mb-4">
                     <p class="text-sm text-gray-600">
                         Mostrando <span id="total-tabela-filtrado" class="font-bold">0</span> de <span id="total-tabela" class="font-bold">0</span> produtos
                     </p>
-                    <button
-                        onclick="exportarTabelaCSV()"
-                        class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center gap-2"
-                    >
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        Exportar CSV
-                    </button>
                 </div>
 
                 <!-- Tabela -->
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto tabela-wrapper">
                     <table id="tabela-comparativa" class="min-w-full border-collapse">
                         <thead>
                             <tr class="bg-blue-600 text-white">
@@ -232,7 +200,7 @@
                         <tbody id="tabela-body" class="bg-white divide-y divide-gray-200">
                             <tr>
                                 <td colspan="7" class="px-4 py-8 text-center text-gray-500">
-                                    Clique em "Carregar Tabela" para ver os dados
+                                    Carregando dados...
                                 </td>
                             </tr>
                         </tbody>
@@ -251,29 +219,13 @@
         // Inicializar ícones Lucide
         lucide.createIcons();
 
-        // Carregar estatísticas e tabela ao iniciar
-        carregarEstatisticas();
-        
-        // Carregar tabela automaticamente após um pequeno delay
+        // Carregar tabela automaticamente ao iniciar
         window.addEventListener('load', () => {
             setTimeout(() => {
                 carregarTabelaComparativa();
-            }, 1000);
+            }, 500);
         });
 
-        async function carregarEstatisticas() {
-            try {
-                const response = await axios.get('http://localhost:5000/api/estatisticas');
-                const stats = response.data;
-                
-                document.getElementById('total-produtos').textContent = stats.total_produtos || 0;
-                document.getElementById('total-mercados').textContent = stats.total_mercados || 0;
-                document.getElementById('preco-medio').textContent = formatarPreco(stats.preco_medio || 0);
-                document.getElementById('data-atualizacao').textContent = stats.data_atualizacao || 'N/A';
-            } catch (error) {
-                console.error('Erro ao carregar estatísticas:', error);
-            }
-        }
 
         async function buscarProdutos() {
             const busca = document.getElementById('input-busca').value.trim();
@@ -399,9 +351,10 @@
             try {
                 const response = await axios.post('http://localhost:5000/api/scrape');
                 alert(response.data.message);
-                carregarEstatisticas();
                 const busca = document.getElementById('input-busca').value.trim();
                 if (busca) buscarProdutos();
+                // Recarregar tabela após atualização
+                carregarTabelaComparativa();
             } catch (error) {
                 console.error('Erro ao atualizar:', error);
                 alert('Erro ao atualizar dados.');
@@ -445,13 +398,9 @@
         let ordenacaoAtual = { coluna: null, direcao: 'asc' };
 
         async function carregarTabelaComparativa() {
-            const btnCarregar = document.getElementById('btn-carregar-tabela');
             const tabelaBody = document.getElementById('tabela-body');
             const filtrosContainer = document.getElementById('filtros-container');
             
-            btnCarregar.disabled = true;
-            btnCarregar.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i> Carregando...';
-            lucide.createIcons();
             tabelaBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center">Carregando dados...</td></tr>';
 
             try {
@@ -481,10 +430,6 @@
                 if (error.response?.status !== 404) {
                     console.error('Detalhes do erro:', error.response?.data);
                 }
-            } finally {
-                btnCarregar.disabled = false;
-                btnCarregar.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Carregar Tabela';
-                lucide.createIcons();
             }
         }
 
