@@ -534,8 +534,18 @@
             }
         }
 
+        /**
+         * Normaliza string para chave de agrupamento: trim + lowercase, para que
+         * "5Kg" e "5kg", "Carreteiro" e "carreteiro" sejam o mesmo produto na mesma linha.
+         */
+        function normalizarChaveAgrupamento(str) {
+            return String(str || '').trim().toLowerCase();
+        }
+
         function agruparProdutos() {
-            // Agrupar produtos iguais (mesmo segmento, produto, marca e quantidade) de mercados diferentes
+            // Agrupar produtos iguais (mesmo produto, marca e quantidade) de mercados/segmentos diferentes
+            // na MESMA LINHA. Chave só por produto|marca|qtd para que Açúcar União 1Kg (Matinais e Mercearia)
+            // e Arroz Carreteiro 5Kg (Guanabara e Prezunic) apareçam numa única linha com todos os preços.
             const grupos = {};
             
             dadosTabelaCompleta.forEach(item => {
@@ -544,7 +554,7 @@
                 const marc = String(item.Marca || '').trim();
                 const qtd = String(item.Qtd || '').trim();
                 const tipo = String(item.Tipo != null ? item.Tipo : '').trim();
-                const chave = `${seg}|${prod}|${marc}|${qtd}`;
+                const chave = `${normalizarChaveAgrupamento(prod)}|${normalizarChaveAgrupamento(marc)}|${normalizarChaveAgrupamento(qtd)}`;
                 
                 if (!grupos[chave]) {
                     grupos[chave] = {

@@ -300,18 +300,26 @@ def gerar_tabela_comparativa():
         df['marca'] = df['marca'].fillna('Genérico')
         df['quantidade'] = df['quantidade'].fillna('un')
         
-        # Gerar tabela comparativa: uma linha por (segmento, produto, marca, quantidade, mercado)
-        # para que o frontend possa assimilar o mesmo produto de vários mercados em uma única linha.
+        # Normalizar (produto, marca) para agrupamento: mesmo item de mercados diferentes na mesma linha
+        df['_produto_agr'], df['_marca_agr'] = zip(*df.apply(
+            lambda row: normalizar_produto_marca_para_agrupamento(row.get('produto'), row.get('marca')), axis=1))
+        # Normalizar quantidade para agrupamento (5Kg e 5kg = mesma linha)
+        df['_qtd_agr'] = df['quantidade'].astype(str).str.strip().str.lower()
+        
+        # Gerar tabela comparativa: agrupar por (produto, marca, qtd) apenas, para que
+        # o mesmo item em mercados/segmentos diferentes (ex.: Açúcar União 1Kg) apareça na mesma linha.
         tabela = []
         try:
-            grupos = df.groupby(['segmento', 'produto', 'marca', 'quantidade'], dropna=False)
+            grupos = df.groupby(['_produto_agr', '_marca_agr', '_qtd_agr'], dropna=False)
             
-            for (segmento, produto, marca, qtd), grupo in grupos:
+            for (produto, marca, qtd_agr), grupo in grupos:
                 if grupo.empty:
                     continue
                 produto_str = str(produto) if not pd.isna(produto) else 'Produto'
                 marca_str = str(marca) if not pd.isna(marca) else 'Genérico'
                 marca_final, tipo = normalizar_marca_e_tipo(marca_str, produto_str)
+                qtd_exibicao = str(grupo['quantidade'].iloc[0]).strip() if not grupo.empty else str(qtd_agr)
+                segmento_exibicao = str(grupo['segmento'].iloc[0]).strip() if not grupo.empty and 'segmento' in grupo.columns else 'Outros'
                 # Uma linha por mercado onde o produto existe (permite comparação lado a lado no frontend)
                 for _, row in grupo.iterrows():
                     preco_valor = row['preco']
@@ -326,11 +334,11 @@ def gerar_tabela_comparativa():
                                 url_mercado = mercado_info['url']
                                 break
                     tabela.append({
-                        'Segmento': str(segmento) if not pd.isna(segmento) else 'Outros',
+                        'Segmento': segmento_exibicao,
                         'Produto': produto_str,
                         'Marca': marca_final,
                         'Tipo': tipo,
-                        'Qtd': str(qtd) if not pd.isna(qtd) else 'un',
+                        'Qtd': qtd_exibicao,
                         'Menor Preço': preco_formatado,
                         'Mercado': mercado_nome,
                         'Link': url_mercado
@@ -447,6 +455,7 @@ MARCAS_CONHECIDAS = [
     'omo', 'ariel', 'sadia', 'perdigão', 'perdigao', 'seara', 'coca cola', 'coca-cola',
     'pepsi', 'guaraná', 'guarana', 'monteminas', 'brilhante', 'bom pastor', 'porto alegre',
     'padrão regina', 'padrao regina', 'fort', 'onar', 'mor', 'flúor', 'fluor',
+    'carreteiro', 'arroz rei sul', 'máximo', 'maximo', 'união', 'uniao', 'guarani',
 ]
 
 
@@ -474,6 +483,10 @@ def extrair_marca_do_produto(produto):
                 return 'Ypê'
             if marca in ('fluor', 'flúor'):
                 return 'Flúor'
+            if marca in ('uniao', 'união'):
+                return 'União'
+            if marca in ('carreteiro',):
+                return 'Carreteiro'
             return marca.title()
     return None
 
@@ -489,6 +502,47 @@ def normalizar_marca_e_tipo(marca, produto):
     marca_final = simplificar_marca(marca_str)
     tipo = extrair_tipo(produto_str)
     return marca_final, tipo
+
+
+def normalizar_produto_marca_para_agrupamento(produto, marca):
+    """
+    Unifica variantes de (produto, marca) para que o mesmo item de mercados diferentes
+    agrupe na mesma linha.
+    - "Açúcar Refinado União" em ambos -> ("Açúcar", "União").
+    - "Arroz Branco Carreteiro Tipo1" + Genérico -> ("Arroz Branco", "Carreteiro").
+    """
+    p = str(produto).strip() if produto and not pd.isna(produto) else ''
+    m = str(marca).strip() if marca and not pd.isna(marca) else ''
+    if not p:
+        return p, m
+    pl = p.lower()
+    ml = m.lower() if m else ''
+    # Produto e marca iguais (nome completo duplicado) -> unificar para produto + marca canônicos
+    if pl == ml:
+        if 'açúcar' in pl and 'união' in pl:
+            return 'Açúcar', 'União'
+        if 'acucar' in pl and 'uniao' in pl:
+            return 'Açúcar', 'União'
+    # Marca Genérico: extrair marca do nome do produto e normalizar nome do produto
+    if not m or ml == 'genérico' or ml == 'generico':
+        # Açúcar + União no nome (ex.: "Açúcar Refinado União") -> ("Açúcar", "União")
+        if ('açúcar' in pl or 'acucar' in pl) and ('união' in pl or 'uniao' in pl):
+            return 'Açúcar', 'União'
+        for marca_cand in MARCAS_CONHECIDAS:
+            if marca_cand in pl:
+                marca_exibir = 'Carreteiro' if marca_cand == 'carreteiro' else marca_cand.title()
+                if marca_cand in ('t. joão', 't. joao'):
+                    marca_exibir = 'Tio João'
+                elif marca_cand in ('união', 'uniao'):
+                    marca_exibir = 'União'
+                elif marca_cand in ('máximo', 'maximo'):
+                    marca_exibir = 'Máximo'
+                # Arroz Branco + Carreteiro no nome -> produto "Arroz Branco", marca "Carreteiro"
+                if 'arroz branco' in pl and marca_cand == 'carreteiro':
+                    return 'Arroz Branco', marca_exibir
+                # Outros: manter produto, só corrigir marca
+                return p, marca_exibir
+    return p, m
 
 
 def ler_google_sheets():
@@ -623,10 +677,11 @@ def ler_google_sheets():
             preco = str(row[col_preco]) if not pd.isna(row[col_preco]) else 'R$ 0,00'
             mercado = corrigir_encoding(row[col_mercado]) if not pd.isna(row[col_mercado]) else 'Desconhecido'
             link = str(row[col_link]) if not pd.isna(row[col_link]) else ''
-            marca_final, tipo = normalizar_marca_e_tipo(marca, produto)
+            produto_agr, marca_agr = normalizar_produto_marca_para_agrupamento(produto, marca)
+            marca_final, tipo = normalizar_marca_e_tipo(marca_agr, produto_agr)
             tabela.append({
                 'Segmento': str(segmento),
-                'Produto': str(produto),
+                'Produto': str(produto_agr),
                 'Marca': marca_final,
                 'Tipo': tipo,
                 'Qtd': str(qtd),
