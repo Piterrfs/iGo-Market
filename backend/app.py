@@ -300,7 +300,8 @@ def gerar_tabela_comparativa():
         df['marca'] = df['marca'].fillna('Genérico')
         df['quantidade'] = df['quantidade'].fillna('un')
         
-        # Gerar tabela comparativa
+        # Gerar tabela comparativa: uma linha por (segmento, produto, marca, quantidade, mercado)
+        # para que o frontend possa assimilar o mesmo produto de vários mercados em uma única linha.
         tabela = []
         try:
             grupos = df.groupby(['segmento', 'produto', 'marca', 'quantidade'], dropna=False)
@@ -308,37 +309,32 @@ def gerar_tabela_comparativa():
             for (segmento, produto, marca, qtd), grupo in grupos:
                 if grupo.empty:
                     continue
-                    
-                grupo_ordenado = grupo.sort_values('preco')
-                menor_preco_item = grupo_ordenado.iloc[0]
-                
-                # Verificar se tem preço válido
-                preco_valor = menor_preco_item['preco']
-                if pd.isna(preco_valor) or (isinstance(preco_valor, (int, float)) and preco_valor <= 0):
-                    continue
-                
-                # Formatar preço
-                preco_formatado = f"R$ {menor_preco_item['preco']:.2f}".replace('.', ',')
-                
-                # Obter URL do mercado
-                mercado_nome = str(menor_preco_item['mercado']) if not pd.isna(menor_preco_item['mercado']) else 'Desconhecido'
-                url_mercado = str(menor_preco_item.get('url_fonte', '')) if not pd.isna(menor_preco_item.get('url_fonte', '')) else ''
-                if not url_mercado:
-                    # Buscar URL do mercado na configuração
-                    for key, mercado_info in MERCADOS.items():
-                        if mercado_info['nome'].lower() == mercado_nome.lower():
-                            url_mercado = mercado_info['url']
-                            break
-                
-                tabela.append({
-                    'Segmento': str(segmento) if not pd.isna(segmento) else 'Outros',
-                    'Produto': str(produto) if not pd.isna(produto) else 'Produto',
-                    'Marca': str(marca) if not pd.isna(marca) else 'Genérico',
-                    'Qtd': str(qtd) if not pd.isna(qtd) else 'un',
-                    'Menor Preço': preco_formatado,
-                    'Mercado': mercado_nome,
-                    'Link': url_mercado
-                })
+                produto_str = str(produto) if not pd.isna(produto) else 'Produto'
+                marca_str = str(marca) if not pd.isna(marca) else 'Genérico'
+                marca_final, tipo = normalizar_marca_e_tipo(marca_str, produto_str)
+                # Uma linha por mercado onde o produto existe (permite comparação lado a lado no frontend)
+                for _, row in grupo.iterrows():
+                    preco_valor = row['preco']
+                    if pd.isna(preco_valor) or (isinstance(preco_valor, (int, float)) and preco_valor <= 0):
+                        continue
+                    preco_formatado = f"R$ {float(preco_valor):.2f}".replace('.', ',')
+                    mercado_nome = str(row['mercado']) if not pd.isna(row['mercado']) else 'Desconhecido'
+                    url_mercado = str(row.get('url_fonte', '')) if not pd.isna(row.get('url_fonte', '')) else ''
+                    if not url_mercado:
+                        for key, mercado_info in MERCADOS.items():
+                            if mercado_info['nome'].lower() == mercado_nome.lower():
+                                url_mercado = mercado_info['url']
+                                break
+                    tabela.append({
+                        'Segmento': str(segmento) if not pd.isna(segmento) else 'Outros',
+                        'Produto': produto_str,
+                        'Marca': marca_final,
+                        'Tipo': tipo,
+                        'Qtd': str(qtd) if not pd.isna(qtd) else 'un',
+                        'Menor Preço': preco_formatado,
+                        'Mercado': mercado_nome,
+                        'Link': url_mercado
+                    })
         except Exception as e:
             return jsonify({'error': f'Erro ao processar dados: {str(e)}'}), 500
         
@@ -397,6 +393,103 @@ def corrigir_encoding(texto):
         # Se houver qualquer erro, retornar o texto original
         print(f"Aviso: Erro ao corrigir encoding: {e}")
         return texto if texto is not None else ''
+
+
+# Produtos base para extrair "Tipo" (complemento). Ordenados do mais curto ao mais longo
+# para que o primeiro match seja a base mínima e o resto seja o tipo (ex: "Queijo Minas" -> "Frescal").
+PRODUTOS_BASE_TIPO = [
+    'Queijo Minas', 'Creme Dental', 'Escova Dental', 'Churrasqueira a Carvão', 'Carvão Briquete',
+    'Carvão', 'Colgate Total', 'Colgate', 'Creme Dental Colgate', 'Creme Dental Colgate Total',
+    'Escova Dental Colgate', 'Queijo Minas Frescal', 'Queijo Minas Sol com Sal', 'Queijo Minas Frescal Sol',
+]
+
+
+def extrair_tipo(produto):
+    """Extrai o complemento (Tipo) do nome do produto. Ex: 'Queijo Minas Frescal' -> 'Frescal'."""
+    if not produto or not isinstance(produto, str):
+        return ''
+    p = produto.strip()
+    # Ordenar por tamanho crescente para pegar a base mínima e o resto como tipo
+    bases_ordenadas = sorted(PRODUTOS_BASE_TIPO, key=len)
+    for base in bases_ordenadas:
+        if p.lower().startswith(base.lower()):
+            resto = p[len(base):].strip()
+            if resto:
+                return resto
+            return ''
+    return ''
+
+
+# Simplificação de marcas longas para exibição (ex.: "Padrão Regina Inteiro" -> "Padrão Regina")
+SIMPLIFICAR_MARCA = {
+    'padrão regina inteiro': 'Padrão Regina',
+    'padrao regina inteiro': 'Padrão Regina',
+    'porto alegre pequeno': 'Porto Alegre',
+    'bom pastor pequeno': 'Bom Pastor',
+    'padrão regina': 'Padrão Regina',
+    'padrao regina': 'Padrão Regina',
+}
+
+
+def simplificar_marca(marca):
+    """Simplifica o nome da marca para exibição."""
+    if not marca or not isinstance(marca, str):
+        return marca or ''
+    key = marca.strip().lower()
+    return SIMPLIFICAR_MARCA.get(key, marca.strip())
+
+
+# Marcas conhecidas para extrair do texto do produto quando Marca = Genérico (ordem: mais específica primeiro)
+MARCAS_CONHECIDAS = [
+    'colgate total', 'colgate', 'oral b', 'sensodyne', 'close up', 'crest', 'sorriso',
+    'montana', 'ypê', 'ype', 'nestlé', 'nestle', 'danone', 'vigor', 'italac', 'parmalat',
+    'tio joão', 't. joão', 'tio joao', 't. joao', 'dona elza', 'dona elsa', 'camil',
+    'omo', 'ariel', 'sadia', 'perdigão', 'perdigao', 'seara', 'coca cola', 'coca-cola',
+    'pepsi', 'guaraná', 'guarana', 'monteminas', 'brilhante', 'bom pastor', 'porto alegre',
+    'padrão regina', 'padrao regina', 'fort', 'onar', 'mor', 'flúor', 'fluor',
+]
+
+
+def extrair_marca_do_produto(produto):
+    """Se a marca for Genérico, tenta extrair a marca do nome do produto."""
+    if not produto or not isinstance(produto, str):
+        return None
+    nome_lower = produto.lower()
+    for marca in MARCAS_CONHECIDAS:
+        if marca in nome_lower:
+            # Normalizar exibição
+            if marca in ('t. joão', 't. joao'):
+                return 'Tio João'
+            if marca in ('dona elsa',):
+                return 'Dona Elza'
+            if marca in ('nestle', 'nestlé'):
+                return 'Nestlé'
+            if marca in ('padrao regina', 'padrão regina'):
+                return 'Padrão Regina'
+            if marca in ('perdigao', 'perdigão'):
+                return 'Perdigão'
+            if marca in ('guarana', 'guaraná'):
+                return 'Guaraná'
+            if marca in ('ype', 'ypê'):
+                return 'Ypê'
+            if marca in ('fluor', 'flúor'):
+                return 'Flúor'
+            return marca.title()
+    return None
+
+
+def normalizar_marca_e_tipo(marca, produto):
+    """Retorna (marca_final, tipo). Se marca for Genérico, tenta extrair marca do produto. Aplica simplificação."""
+    marca_str = str(marca).strip() if marca and not pd.isna(marca) else 'Genérico'
+    produto_str = str(produto).strip() if produto and not pd.isna(produto) else ''
+    if not marca_str or marca_str.lower() == 'genérico' or marca_str.lower() == 'generico':
+        extraida = extrair_marca_do_produto(produto_str)
+        if extraida:
+            marca_str = extraida
+    marca_final = simplificar_marca(marca_str)
+    tipo = extrair_tipo(produto_str)
+    return marca_final, tipo
+
 
 def ler_google_sheets():
     """Lê dados da planilha do Google Sheets via API pública"""
@@ -530,11 +623,12 @@ def ler_google_sheets():
             preco = str(row[col_preco]) if not pd.isna(row[col_preco]) else 'R$ 0,00'
             mercado = corrigir_encoding(row[col_mercado]) if not pd.isna(row[col_mercado]) else 'Desconhecido'
             link = str(row[col_link]) if not pd.isna(row[col_link]) else ''
-            
+            marca_final, tipo = normalizar_marca_e_tipo(marca, produto)
             tabela.append({
                 'Segmento': str(segmento),
                 'Produto': str(produto),
-                'Marca': str(marca),
+                'Marca': marca_final,
+                'Tipo': tipo,
                 'Qtd': str(qtd),
                 'Menor Preço': preco,
                 'Mercado': str(mercado),
