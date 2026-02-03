@@ -447,47 +447,20 @@ def simplificar_marca(marca):
     return SIMPLIFICAR_MARCA.get(key, marca.strip())
 
 
-# Marcas conhecidas para extrair do texto do produto quando Marca = Genérico (ordem: mais específica primeiro)
-MARCAS_CONHECIDAS = [
-    'colgate total', 'colgate', 'oral b', 'sensodyne', 'close up', 'crest', 'sorriso',
-    'montana', 'ypê', 'ype', 'nestlé', 'nestle', 'danone', 'vigor', 'italac', 'parmalat',
-    'tio joão', 't. joão', 'tio joao', 't. joao', 'dona elza', 'dona elsa', 'camil',
-    'omo', 'ariel', 'sadia', 'perdigão', 'perdigao', 'seara', 'coca cola', 'coca-cola',
-    'pepsi', 'guaraná', 'guarana', 'monteminas', 'brilhante', 'bom pastor', 'porto alegre',
-    'padrão regina', 'padrao regina', 'fort', 'onar', 'mor', 'flúor', 'fluor',
-    'carreteiro', 'arroz rei sul', 'máximo', 'maximo', 'união', 'uniao', 'guarani',
-]
+# Banco de marcas por categoria (Saudável, Padaria, Mercearia, Higiene, etc.)
+from marcas_conhecidas import MARCAS_CONHECIDAS, marca_para_exibir
 
 
 def extrair_marca_do_produto(produto):
-    """Se a marca for Genérico, tenta extrair a marca do nome do produto."""
+    """Se a marca for Genérico, tenta extrair a marca do nome do produto usando o banco de marcas."""
     if not produto or not isinstance(produto, str):
         return None
     nome_lower = produto.lower()
     for marca in MARCAS_CONHECIDAS:
+        if marca in ("sem marca",):
+            continue
         if marca in nome_lower:
-            # Normalizar exibição
-            if marca in ('t. joão', 't. joao'):
-                return 'Tio João'
-            if marca in ('dona elsa',):
-                return 'Dona Elza'
-            if marca in ('nestle', 'nestlé'):
-                return 'Nestlé'
-            if marca in ('padrao regina', 'padrão regina'):
-                return 'Padrão Regina'
-            if marca in ('perdigao', 'perdigão'):
-                return 'Perdigão'
-            if marca in ('guarana', 'guaraná'):
-                return 'Guaraná'
-            if marca in ('ype', 'ypê'):
-                return 'Ypê'
-            if marca in ('fluor', 'flúor'):
-                return 'Flúor'
-            if marca in ('uniao', 'união'):
-                return 'União'
-            if marca in ('carreteiro',):
-                return 'Carreteiro'
-            return marca.title()
+            return marca_para_exibir(marca)
     return None
 
 
@@ -530,13 +503,7 @@ def normalizar_produto_marca_para_agrupamento(produto, marca):
             return 'Açúcar', 'União'
         for marca_cand in MARCAS_CONHECIDAS:
             if marca_cand in pl:
-                marca_exibir = 'Carreteiro' if marca_cand == 'carreteiro' else marca_cand.title()
-                if marca_cand in ('t. joão', 't. joao'):
-                    marca_exibir = 'Tio João'
-                elif marca_cand in ('união', 'uniao'):
-                    marca_exibir = 'União'
-                elif marca_cand in ('máximo', 'maximo'):
-                    marca_exibir = 'Máximo'
+                marca_exibir = marca_para_exibir(marca_cand)
                 # Arroz Branco + Carreteiro no nome -> produto "Arroz Branco", marca "Carreteiro"
                 if 'arroz branco' in pl and marca_cand == 'carreteiro':
                     return 'Arroz Branco', marca_exibir

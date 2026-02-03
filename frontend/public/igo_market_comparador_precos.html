@@ -14,6 +14,23 @@
         #tabela-comparativa {
             border-collapse: collapse;
             width: 100%;
+            table-layout: fixed;
+            font-size: 0.7rem;
+        }
+        #tabela-comparativa th,
+        #tabela-comparativa td {
+            padding: 0.35rem 0.4rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-word;
+            max-width: 0;
+        }
+        #tabela-comparativa th {
+            white-space: nowrap;
+        }
+        #tabela-comparativa td {
+            white-space: normal;
+            line-height: 1.2;
         }
         #filtros-container {
             position: sticky;
@@ -32,9 +49,10 @@
             color: #2563eb;
         }
         .tabela-wrapper {
-            max-height: calc(100vh - 350px);
+            max-height: calc(100vh - 320px);
             overflow-y: auto;
-            overflow-x: auto;
+            overflow-x: hidden;
+            width: 100%;
         }
         #tabela-comparativa thead {
             position: sticky;
@@ -49,11 +67,11 @@
         }
         @media (max-width: 768px) {
             #tabela-comparativa {
-                font-size: 0.75rem;
+                font-size: 0.65rem;
             }
             #tabela-comparativa th,
             #tabela-comparativa td {
-                padding: 0.5rem;
+                padding: 0.25rem 0.3rem;
             }
         }
     </style>
@@ -169,6 +187,12 @@
                         </select>
                     </div>
                 </div>
+                <div class="mt-3 flex items-center gap-2">
+                    <input type="checkbox" id="filtro-mais-de-um-mercado" onchange="aplicarFiltros()" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    <label for="filtro-mais-de-um-mercado" class="text-sm font-medium text-gray-700 cursor-pointer">
+                        Mostrar apenas itens que aparecem em mais de um mercado
+                    </label>
+                </div>
 
                 <!-- Info da tabela -->
                 <div class="mb-4">
@@ -187,29 +211,29 @@
                 </div>
 
                 <!-- Tabela -->
-                <div class="overflow-x-auto tabela-wrapper">
+                <div class="tabela-wrapper">
                     <table id="tabela-comparativa" class="min-w-full border-collapse">
                         <thead>
                             <tr class="bg-blue-600 text-white">
-                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Segmento')">
-                                    Segmento <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
+                                <th rowspan="2" class="px-1 py-1.5 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Segmento')">
+                                    Seg. <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Produto')">
+                                <th rowspan="2" class="px-1 py-1.5 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Produto')">
                                     Produto <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Marca')">
+                                <th rowspan="2" class="px-1 py-1.5 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Marca')">
                                     Marca <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Tipo')">
+                                <th rowspan="2" class="px-1 py-1.5 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Tipo')">
                                     Tipo <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Qtd')">
+                                <th rowspan="2" class="px-1 py-1.5 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer" onclick="ordenarTabela('Qtd')">
                                     Qtd <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i>
                                 </th>
-                                <th id="coluna-precos-header" class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider" colspan="1">
-                                    Comparação de Preços
+                                <th id="coluna-precos-header" class="px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wider" colspan="1">
+                                    Preços
                                 </th>
-                                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Link</th>
+                                <th rowspan="2" class="px-1 py-1.5 text-left text-xs font-semibold uppercase tracking-wider">Link</th>
                             </tr>
                             <tr id="sub-header-mercados" class="bg-blue-500 text-white">
                                 <!-- Sub-headers de mercados serão inseridos aqui dinamicamente -->
@@ -702,6 +726,7 @@
             const filtroMarca = document.getElementById('filtro-marca').value.toLowerCase();
             const filtroQuantidade = document.getElementById('filtro-quantidade').value.toLowerCase();
             const filtroMercado = document.getElementById('filtro-mercado').value.toLowerCase();
+            const apenasMaisDeUmMercado = document.getElementById('filtro-mais-de-um-mercado').checked;
 
             // Filtrar grupos de produtos
             let gruposFiltrados = dadosAgrupados.filter(grupo => {
@@ -711,8 +736,11 @@
                 const matchQuantidade = !filtroQuantidade || (grupo.Qtd && grupo.Qtd.toLowerCase().includes(filtroQuantidade));
                 const matchMercadoDropdown = !filtroMercado || (grupo.precos && grupo.precos.some(p => p.mercado && p.mercado.toLowerCase().includes(filtroMercado)));
                 const matchMercadoAba = mercadoAtivo === 'todos' || (grupo.precos && grupo.precos.some(p => p.mercado && p.mercado.toLowerCase() === mercadoAtivo.toLowerCase()));
+                // Itens em mais de um mercado: mesmo produto com oferta em pelo menos 2 mercados DIFERENTES
+                const mercadosDistintos = grupo.precos ? new Set(grupo.precos.map(p => String(p.mercado || '').trim().toLowerCase())).size : 0;
+                const emMaisDeUmMercado = !apenasMaisDeUmMercado || mercadosDistintos >= 2;
                 
-                return matchSegmento && matchProduto && matchMarca && matchQuantidade && matchMercadoDropdown && matchMercadoAba;
+                return matchSegmento && matchProduto && matchMarca && matchQuantidade && matchMercadoDropdown && matchMercadoAba && emMaisDeUmMercado;
             });
 
             // Filtros dinâmicos: atualizar opções dos dropdowns para mostrar apenas valores possíveis nos resultados atuais
@@ -777,18 +805,17 @@
             if (mercadoAtivo === 'todos') {
                 // Criar uma coluna para cada mercado
                 headerPrecos.colSpan = mercadosDisponiveis.length;
-                headerPrecos.className = 'px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider';
-                headerPrecos.innerHTML = 'Comparação de Preços';
+                headerPrecos.className = 'px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wider';
+                headerPrecos.innerHTML = 'Preços';
                 
-                // Criar sub-headers para cada mercado
                 subHeaderMercados.innerHTML = mercadosDisponiveis.map(mercado => 
-                    `<th class="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider">${mercado}</th>`
+                    `<th class="px-1 py-1 text-center text-xs font-semibold uppercase tracking-wider">${mercado}</th>`
                 ).join('');
                 subHeaderMercados.style.display = '';
             } else {
                 // Uma única coluna de preço
                 headerPrecos.colSpan = 1;
-                headerPrecos.className = 'px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider';
+                headerPrecos.className = 'px-1 py-1.5 text-center text-xs font-semibold uppercase tracking-wider';
                 headerPrecos.innerHTML = `Preço - ${mercadoAtivo}`;
                 subHeaderMercados.innerHTML = '';
                 subHeaderMercados.style.display = 'none';
@@ -828,7 +855,7 @@
                     celulasPrecos = mercadosDisponiveis.map(mercado => {
                         const precoMercado = grupo.precos.find(p => String(p.mercado).trim().toLowerCase() === String(mercado).trim().toLowerCase());
                         if (!precoMercado) {
-                            return '<td class="px-2 py-3 text-center text-sm text-gray-400 bg-gray-50">-</td>';
+                            return '<td class="px-1 py-1.5 text-center text-xs text-gray-400 bg-gray-50">-</td>';
                         }
                         
                         // Destacar o preço mais barato entre todos os mercados para este produto
@@ -836,10 +863,9 @@
                         const bgColor = isMenorPreco ? 'bg-green-200' : 'bg-white';
                         const textColor = isMenorPreco ? 'text-green-800 font-bold' : 'text-gray-700';
                         
-                        return `<td class="px-2 py-3 text-center text-sm ${bgColor} ${textColor}">
+                        return `<td class="px-1 py-1.5 text-center text-xs ${bgColor} ${textColor}">
                             <div class="${isMenorPreco ? 'font-bold' : 'font-medium'}">${precoMercado.preco}</div>
-                            ${isMenorPreco ? '<div class="text-xs text-green-700 font-semibold mt-0.5">Melhor preço</div>' : ''}
-                            <div class="text-xs text-gray-600">${mercado}</div>
+                            ${isMenorPreco ? '<div class="text-green-700 font-semibold">✓</div>' : ''}
                         </td>`;
                     }).join('');
                 } else {
@@ -848,9 +874,7 @@
                     const isMenorPreco = menorPrecoGlobal !== null && preco.precoNum === menorPrecoGlobal;
                     const bgColor = isMenorPreco ? 'bg-green-100' : 'bg-white';
                     const textColor = isMenorPreco ? 'text-green-700 font-bold' : 'text-gray-700';
-                    celulasPrecos = `<td class="px-4 py-3 text-center text-sm ${bgColor} ${textColor}">
-                        ${preco.preco}
-                    </td>`;
+                    celulasPrecos = `<td class="px-1 py-1.5 text-center text-xs ${bgColor} ${textColor}">${preco.preco}</td>`;
                 }
                 
                 // Link do menor preço global (menor entre todos os mercados)
@@ -863,13 +887,13 @@
                 
                 return `
                     <tr class="hover:bg-gray-50 ${linhaDestaque}">
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${grupo.Segmento}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${grupo.Produto}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${grupo.Marca}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${grupo.Tipo != null ? grupo.Tipo : ''}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${grupo.Qtd}</td>
+                        <td class="px-1 py-1.5 text-xs text-gray-700">${grupo.Segmento}</td>
+                        <td class="px-1 py-1.5 text-xs font-medium text-gray-900">${grupo.Produto}</td>
+                        <td class="px-1 py-1.5 text-xs text-gray-700">${grupo.Marca}</td>
+                        <td class="px-1 py-1.5 text-xs text-gray-700">${grupo.Tipo != null ? grupo.Tipo : ''}</td>
+                        <td class="px-1 py-1.5 text-xs text-gray-700">${grupo.Qtd}</td>
                         ${celulasPrecos}
-                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                        <td class="px-1 py-1.5 text-xs">
                             ${linkMenorPreco}
                         </td>
                     </tr>
